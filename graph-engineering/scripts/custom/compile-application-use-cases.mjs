@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
 import { readdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { writeExecutionLog } from "../lib/activity-logs.mjs";
 import { resolvePaths } from "../lib/resolve-paths.mjs";
 
 const SCRIPT_NAME = "compile-application-use-cases";
 const SOURCE_JOB_NAME = "analyze-journey-use-cases";
+const JOURNEY_IDENTIFIER_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const paths = resolvePaths(import.meta.url);
 const [outputPathArgument] = process.argv.slice(2);
@@ -73,6 +74,18 @@ async function findLatestOutputs() {
   );
 }
 
+function normalizeJourneyIdentifier(runName) {
+  const journey = runName.replace(/-(?:journey|page)$/, "");
+
+  if (!JOURNEY_IDENTIFIER_PATTERN.test(journey)) {
+    throw new Error(
+      `Run name "${runName}" cannot be normalized to a valid journey identifier.`
+    );
+  }
+
+  return journey;
+}
+
 async function compileApplicationUseCases() {
   if (!outputPathArgument) {
     throw new Error(
@@ -95,6 +108,14 @@ async function compileApplicationUseCases() {
     })
     .join("\n\n");
 
+  const journeys = [
+    ...new Set(sourceOutputs.map(({ runName }) => normalizeJourneyIdentifier(runName))),
+  ].sort();
+
+  if (journeys.length === 0) {
+    throw new Error("No journey identifiers were resolved from the source runs.");
+  }
+
   await writeFile(outputPath, `${compiledContent}\n`, "utf8");
 
   await writeExecutionLog({
@@ -104,10 +125,13 @@ async function compileApplicationUseCases() {
     metadata: {
       output: outputPath,
       sources: sourceOutputs.map(({ runName }) => runName),
+      journeys,
     },
   });
 
-  console.log(outputPath);
+  // Emit one machine-readable result for graph handoff. Downstream jobs consume
+  // this stdout value and do not need to inspect the generated artifact.
+  console.log(JSON.stringify({ outputPath, journeys }));
 }
 
 try {
