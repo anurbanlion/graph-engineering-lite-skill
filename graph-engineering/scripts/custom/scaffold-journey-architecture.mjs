@@ -60,6 +60,12 @@ function getJourneyFiles(journey) {
       journeyRoot,
       "infrastructure",
       "services",
+      `${journey}.mock.service.ts`
+    ),
+    join(
+      journeyRoot,
+      "infrastructure",
+      "services",
       `${journey}.service.ts`
     ),
     join(
