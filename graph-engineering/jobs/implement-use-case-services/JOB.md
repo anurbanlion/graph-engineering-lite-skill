@@ -19,9 +19,27 @@ The journey identifier MUST contain lowercase words separated by hyphens.
 
 Each use case MUST provide enough information to determine its inputs, result, behavior, and failure conditions. This information MAY come from the user, structured output from a previous job, or explicitly provided frontend source code.
 
+Example:
+
+```txt
+Journey: cart
+
+Use cases:
+- load-cart
+  Input: cart identifier
+  Result: cart with its items
+  Failure: cart not found
+- add-cart-item
+  Input: cart identifier, product identifier, quantity
+  Result: updated cart
+  Failure: product unavailable
+```
+
 The agent MAY inspect the project to resolve the implementation details required by the use cases.
 
 ## Required files
+
+The following files MUST already exist for the selected journey:
 
 ```txt
 apis/[journey]/infrastructure/services/
@@ -30,7 +48,7 @@ apis/[journey]/infrastructure/services/
 └── [journey].service.ts
 ```
 
-These files MUST already exist. When one is missing, the job MUST fail and report its path. A graph MAY execute `scaffold-journey-architecture` first.
+When a required file is missing, the job MUST fail and report its path.
 
 ## Process
 
