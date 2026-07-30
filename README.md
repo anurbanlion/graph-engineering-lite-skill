@@ -1,6 +1,6 @@
-# Graph Engineering Lite
+# Graph Engineering (Lite)
 
-Graph Engineering Lite is a skill for running reusable work through **jobs** and **graphs**. From a user's perspective, you do not operate the internal scripts directly. You ask the agent to execute a job or graph, and the skill handles discovery, selection, validation, execution, outputs, and logging.
+Graph Engineering (Lite) is a skill for running reusable work through **jobs** and **graphs**. From a user's perspective, you do not operate the internal scripts directly. You ask the agent to execute a job or graph, and the skill handles discovery, selection, validation, execution, outputs, and logging.
 
 ## Core concepts
 

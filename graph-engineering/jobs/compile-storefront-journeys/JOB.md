@@ -1,4 +1,4 @@
-# Compile Application Journeys
+# Compile Storefront Journeys
 
 ## Objective
 
@@ -8,27 +8,17 @@ The job MUST compile the journeys that exist in the current application by inspe
 
 The job MAY receive a `domain` in which to store its output.
 
-The `domain` MUST be a kebab-case identifier.
-
-If no `domain` is provided, the agent MUST use `global-designs`.
-
-The agent MUST resolve the output path through the standard job execution workflow before executing this job.
+The `domain` MUST be a kebab-case identifier. If no `domain` is provided, the agent MUST use `global-designs`.
 
 ## Process
 
-The agent MUST execute:
-
-```bash
-node scripts/custom/compile-application-journeys.mjs <output-path>
-```
-
-The agent MUST pass the exact path returned by `resolve-output-path.mjs` as `<output-path>`.
+1. The agent MUST execute: `node scripts/custom/compile-application-journeys.mjs <output-path>`
 
 The agent MUST NOT inspect the runs directory manually or reproduce the script's internal discovery and formatting flow.
 
 ## Output
 
-The document MUST use the following format when journeys are found:
+The document uses the following format when journeys are found:
 
 ```md
 # Application Journeys
@@ -38,13 +28,15 @@ The document MUST use the following format when journeys are found:
 - storefront
 ```
 
-When no matching journey directories exist, the document MUST use:
+When no matching journey directories exist, the document uses:
 
 ```md
 # Application Journeys
 
 No journeys found.
 ```
+
+Formatting and output writing are handled automatically by the script.
 
 # Prompt examples
 

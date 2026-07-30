@@ -6,7 +6,7 @@
         "analyze-journey-use-cases": {
             "instructions": [
                 "Use <route-journey>-page as the run/<domain> name.",
-                "This job can be executed more than one time if the user asks for one more run."
+                "This job can be executed more than one time if the user asks for one than one <domain>."
             ],
             "onDone": "compile-storefront-use-cases",
             "onError": "abort"
