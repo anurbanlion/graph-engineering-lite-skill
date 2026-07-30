@@ -146,3 +146,9 @@ Review `SOURCE_PATH` and `DESTINATION_PATH` in `sync-folder.sh`, then run:
 ```
 
 The destination folder is replaced completely on each successful run. Changes already present only in the destination folder are therefore deleted.
+
+
+TODO:
+
+create a rename job node
+rename analyze-journey-use-cases to compile-journey-use-cases

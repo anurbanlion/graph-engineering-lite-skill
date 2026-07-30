@@ -1,8 +1,8 @@
 {
     "name": "build-journey-architecture",
     "version": "1.0",
-    "prompts": [
-        "Using the graph-engineering local skill (.codex/skills), execute the build-journey-architecture graph.",
+    "example-prompts": [
+        "Execute the build-journey-architecture graph.",
         "Compile the application use cases and scaffold the architecture for every detected journey.",
         "Run the graph that prepares the journey API architecture from the existing journey use cases."
     ],
