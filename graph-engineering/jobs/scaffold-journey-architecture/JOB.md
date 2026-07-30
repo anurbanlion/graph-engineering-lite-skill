@@ -12,7 +12,9 @@ The job MUST leave existing files unchanged.
 
 The job MUST receive one or more journey identifiers.
 
-Journey identifiers MAY be provided directly by the user or obtained from the output of a previously executed job.
+Journey identifiers MAY be provided directly by the user or received from the structured standard output of a previously executed job.
+
+When identifiers come from a previous job, the agent MUST use the explicit journey values printed by that job. The agent MUST NOT inspect a managed output artifact to discover, infer, or normalize identifiers.
 
 Each journey identifier MUST contain one or more lowercase words separated by hyphens.
 
@@ -62,6 +64,7 @@ apis/
         │   └── [journey].mock.repository.ts
         └── services/
             ├── [journey].service.const.ts
+            ├── [journey].mock.service.ts
             └── [journey].service.ts
 ```
 
@@ -86,5 +89,5 @@ Execute the scaffold-journey-architecture job for these journeys:
 ```
 
 ```txt
-Execute the scaffold-journey-architecture job using the journeys produced by the previous job.
+Execute the scaffold-journey-architecture job using the journey identifiers printed by the previous job.
 ```

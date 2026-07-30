@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { readdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { writeExecutionLog } from "../lib/activity-logs.mjs";
 import { resolvePaths } from "../lib/resolve-paths.mjs";
 

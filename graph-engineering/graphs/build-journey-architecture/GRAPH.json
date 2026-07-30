@@ -3,23 +3,23 @@
     "version": "1.0",
     "example-prompts": [
         "Execute the build-journey-architecture graph.",
-        "Compile the application use cases and scaffold the architecture for every detected journey.",
-        "Run the graph that prepares the journey API architecture from the existing journey use cases."
+        "Compile the storefront journeys and scaffold the architecture for every detected journey.",
+        "Run the graph that prepares the journey API architecture from the existing journey runs."
     ],
-    "initial": "compile-storefront-use-cases",
+    "initial": "compile-storefront-journeys",
     "jobs": {
-        "compile-storefront-use-cases": {
+        "compile-storefront-journeys": {
             "instructions": [
-                "Use global-designs as the run/<domain> name.",
-                "Preserve the resolved output path so the next job can read the compiled journey identifiers."
+                "Use global-designs as the run/<domain> name."
             ],
             "onDone": "scaffold-journey-architecture",
             "onError": "abort"
         },
         "scaffold-journey-architecture": {
             "instructions": [
-                "Extract the journey identifiers from the output produced by compile-storefront-use-cases.",
-                "Pass every extracted identifier to the script with a repeated --journey option."
+                "Use only the journeys array returned by the previous job.",
+                "Pass every journey identifier to the script with a repeated --journey option.",
+                "Do not read a managed output file to discover or normalize journey identifiers."
             ],
             "onDone": "complete",
             "onError": "abort"
