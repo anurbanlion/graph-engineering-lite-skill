@@ -3,12 +3,12 @@
     "version": "1.0",
     "example-prompts": [
         "Execute the build-journey-architecture graph.",
-        "Compile the application use cases and scaffold the architecture for every detected journey.",
-        "Run the graph that prepares the journey API architecture from the existing journey use cases."
+        "Compile the storefront journeys and scaffold the architecture for every detected journey.",
+        "Run the graph that prepares the journey API architecture from the existing journey runs."
     ],
-    "initial": "compile-storefront-use-cases",
+    "initial": "compile-storefront-journeys",
     "jobs": {
-        "compile-storefront-use-cases": {
+        "compile-storefront-journeys": {
             "instructions": [
                 "Use global-designs as the run/<domain> name."
             ],
