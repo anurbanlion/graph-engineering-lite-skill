@@ -10,30 +10,33 @@ The job MAY receive a `domain` in which to store its output.
 
 The `domain` MUST be a kebab-case identifier.
 
-If no `domain` is provided, the job MUST use `global-designs`.
+If no `domain` is provided, the agent MUST use `global-designs`.
 
 ## Process
 
-1. The agent MUST execute:
+1. The agent MUST resolve the output path before executing this job:
 
 ```bash
-node scripts/custom/list-application-journeys.mjs [domain]
+node scripts/resolve-output-path.mjs <domain> list-application-journeys
 ```
 
-2. The agent MUST NOT inspect the runs directory manually.
-3. The script MUST resolve the project folder and inspect `.job-graph-engineering/runs`.
-4. The script MUST select only directories whose names end with `-journey`.
-5. The script MUST remove the `-journey` suffix from every selected directory name.
-6. The script MUST sort the resulting journey names alphabetically.
-7. The script MUST write the result to the selected domain and print the same journey list to the console.
+2. The agent MUST execute the job using the exact path returned by the output resolver:
+
+```bash
+node scripts/custom/list-application-journeys.mjs <output-path>
+```
+
+3. The agent MUST NOT inspect the runs directory manually.
+4. The script MUST resolve the project folder and inspect `.job-graph-engineering/runs`.
+5. The script MUST select only directories whose names end with `-journey`.
+6. The script MUST remove the `-journey` suffix from every selected directory name.
+7. The script MUST sort the resulting journey names alphabetically.
+8. The script MUST write the result to the exact resolved output path and print the same journey list to the console.
+9. The script MUST NOT construct or select an alternative output path.
 
 ## Output
 
-The output MUST be a Markdown document named using the standard `OUTPUT-YYYYMMDD-HHMM.md` convention and stored at:
-
-```text
-<project-folder>/.job-graph-engineering/runs/<domain>/list-application-journeys/
-```
+The output MUST be a Markdown document written to the exact path returned by `resolve-output-path.mjs`.
 
 The document MUST use the following format when journeys are found:
 
@@ -53,7 +56,7 @@ When no matching journey directories exist, the document MUST use:
 No journeys found.
 ```
 
-The script MUST also print the Markdown content and the generated output path to the console.
+The script MUST also print the Markdown content and the resolved output path to the console.
 
 # Prompt examples
 
