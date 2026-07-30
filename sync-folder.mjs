@@ -4,11 +4,14 @@ import { access, cp, mkdir, rm, stat } from "node:fs/promises";
 import { constants } from "node:fs";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 
+// Report a clear error and terminate with a non-zero exit code.
 function fail(message) {
   console.error(`sync-folder: ${message}`);
   process.exit(1);
 }
 
+// Validate that the requested folder path is relative and cannot traverse
+// outside either project through ".." segments.
 function validateRelativePath(value) {
   if (!value || isAbsolute(value)) {
     fail("the folder path must be a non-empty relative path");
@@ -21,6 +24,7 @@ function validateRelativePath(value) {
   }
 }
 
+// Confirm that a resolved child path remains inside its expected project root.
 function isInside(parentPath, childPath) {
   const pathFromParent = relative(parentPath, childPath);
   return (
@@ -29,6 +33,8 @@ function isInside(parentPath, childPath) {
   );
 }
 
+// Require an existing directory and provide a specific error for missing or
+// invalid source and destination locations.
 async function requireDirectory(path, label) {
   try {
     const pathStat = await stat(path);
@@ -45,6 +51,8 @@ async function requireDirectory(path, label) {
   }
 }
 
+// Check whether the destination folder already exists without treating a
+// missing path as an error.
 async function pathExists(path) {
   try {
     await access(path, constants.F_OK);
@@ -59,6 +67,7 @@ async function pathExists(path) {
 }
 
 async function syncFolder() {
+  // Step 1: read and validate the three arguments supplied by the shell wrapper.
   const [sourceProjectArgument, destinationProjectArgument, relativeFolderArgument] =
     process.argv.slice(2);
 
@@ -78,14 +87,18 @@ async function syncFolder() {
 
   validateRelativePath(relativeFolderArgument);
 
+  // Step 2: normalize both project roots and resolve the same relative folder
+  // inside the source and destination projects.
   const sourceProject = resolve(sourceProjectArgument);
   const destinationProject = resolve(destinationProjectArgument);
   const sourceFolder = resolve(sourceProject, relativeFolderArgument);
   const destinationFolder = resolve(destinationProject, relativeFolderArgument);
 
+  // Step 3: verify both project roots exist and are directories.
   await requireDirectory(sourceProject, "source project");
   await requireDirectory(destinationProject, "destination project");
 
+  // Step 4: protect against any path that resolves outside its project root.
   if (!isInside(sourceProject, sourceFolder)) {
     fail("the source folder resolves outside the source project");
   }
@@ -94,19 +107,24 @@ async function syncFolder() {
     fail("the destination folder resolves outside the destination project");
   }
 
-  // The source is checked before the destination is removed. If the source is
-  // missing or is not a directory, the script stops without modifying anything.
+  // Step 5: verify the source folder before modifying the destination. If the
+  // source is missing or invalid, the script stops without deleting anything.
   await requireDirectory(sourceFolder, "source folder");
 
   if (sourceFolder === destinationFolder) {
     fail("source and destination folders resolve to the same path");
   }
 
+  // Step 6: remove the destination folder only when it already exists.
   if (await pathExists(destinationFolder)) {
     await rm(destinationFolder, { recursive: true, force: false });
   }
 
+  // Step 7: create intermediate directories required by the relative path.
   await mkdir(dirname(destinationFolder), { recursive: true });
+
+  // Step 8: copy the complete source folder into the destination project while
+  // preserving timestamps and replacing files when necessary.
   await cp(sourceFolder, destinationFolder, {
     recursive: true,
     errorOnExist: false,
@@ -114,7 +132,8 @@ async function syncFolder() {
     preserveTimestamps: true,
   });
 
-  console.log(`Folder synchronized successfully.`);
+  // Step 9: report the completed synchronization and the resolved paths.
+  console.log("Folder synchronized successfully.");
   console.log(`Source: ${sourceFolder}`);
   console.log(`Destination: ${destinationFolder}`);
 }
