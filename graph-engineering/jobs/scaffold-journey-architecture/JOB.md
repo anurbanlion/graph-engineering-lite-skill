@@ -64,6 +64,7 @@ apis/
         │   └── [journey].mock.repository.ts
         └── services/
             ├── [journey].service.const.ts
+            ├── [journey].mock.service.ts
             └── [journey].service.ts
 ```
 
