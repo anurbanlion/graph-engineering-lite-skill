@@ -27,7 +27,7 @@ order-history
 
 ## Process
 
-The agent MUST execute the custom script once and pass every resolved journey with a repeated `--journey` option.
+The agent MUST execute the custom script once and pass every journey identifier with a repeated `--journey` option.
 
 ```bash
 node scripts/custom/scaffold-journey-architecture.mjs \
@@ -36,23 +36,9 @@ node scripts/custom/scaffold-journey-architecture.mjs \
   --journey account
 ```
 
-When the journeys come from a previous job, the agent MUST extract the journey identifiers from that job's output before invoking the script.
-
 The agent MUST NOT reproduce the script's directory or file creation flow manually.
 
-For every journey, the script ensures that the following files exist under the project API root:
-
-```txt
-apis/[journey]/index.ts
-apis/[journey]/infrastructure/services/[journey].service.const.ts
-apis/[journey]/infrastructure/services/[journey].service.ts
-apis/[journey]/infrastructure/repository/[journey].factory.ts
-apis/[journey]/infrastructure/repository/[journey].repository.ts
-apis/[journey]/infrastructure/repository/[journey].mock.repository.ts
-apis/[journey]/application/use-cases/[journey].use-case.ts
-```
-
-The script creates missing parent directories and creates missing files as empty files.
+The script MUST create missing parent directories and missing files.
 
 The script MUST NOT overwrite, modify, truncate, or format existing files.
 
@@ -60,18 +46,39 @@ The script MUST NOT implement use cases, services, repositories, factories, mock
 
 ## Output
 
-The job does not produce an output artifact.
+The job MUST ensure the following code structure exists for every journey:
 
-When execution succeeds, the script prints a concise summary containing the processed journeys, files created, and files already existing.
+```txt
+apis/
+└── [journey]/
+    ├── index.ts
+    ├── application/
+    │   └── use-cases/
+    │       └── [journey].use-case.ts
+    └── infrastructure/
+        ├── repository/
+        │   ├── [journey].factory.ts
+        │   ├── [journey].repository.ts
+        │   └── [journey].mock.repository.ts
+        └── services/
+            ├── [journey].service.const.ts
+            └── [journey].service.ts
+```
+
+These files are project code outputs. They are not stored as a managed run artifact.
+
+Missing files MUST be created as empty files. Existing files MUST remain unchanged.
+
+When execution succeeds, the script MUST print a concise summary containing the processed journeys, files created, and files already existing.
 
 When nothing needs to be created, the script MUST still succeed.
 
-When execution fails, the script prints the reason to standard error and exits with a non-zero status code.
+When execution fails, the script MUST print the reason to standard error and exit with a non-zero status code.
 
 # Prompt examples
 
 ```txt
-Using the graph-engineering local skill (.codex/skills), execute the scaffold-journey-architecture job for these journeys:
+Execute the scaffold-journey-architecture job for these journeys:
 
 - cart
 - saved
@@ -79,5 +86,5 @@ Using the graph-engineering local skill (.codex/skills), execute the scaffold-jo
 ```
 
 ```txt
-Using the journeys produced by the previous job, execute the scaffold-journey-architecture job.
+Execute the scaffold-journey-architecture job using the journeys produced by the previous job.
 ```
