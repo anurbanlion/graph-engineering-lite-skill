@@ -23,7 +23,7 @@ const [outputPathArgument] = process.argv.slice(2);
  * - Format the names as the job's Markdown output.
  * - Write the output to the path previously resolved by
  *   `resolve-output-path.mjs`.
- * - Print the detected journeys and saved output path to the console.
+ * - Print one structured JSON result for downstream graph jobs.
  */
 async function findJourneys() {
   const runsDirectory = join(paths.projectDataDirectory, "runs");
@@ -56,15 +56,6 @@ function formatOutput(journeys) {
   return `# Application Journeys\n\n${lines.join("\n")}\n`;
 }
 
-function formatConsoleOutput(journeys) {
-  const lines =
-    journeys.length > 0
-      ? journeys.map((journey) => `- ${journey}`)
-      : ["No journeys found."];
-
-  return `Journeys detected:\n${lines.join("\n")}`;
-}
-
 async function compileApplicationJourneys() {
   if (!outputPathArgument) {
     throw new Error(
@@ -88,8 +79,7 @@ async function compileApplicationJourneys() {
     },
   });
 
-  console.log(formatConsoleOutput(journeys));
-  console.log(`Output written to: ${outputPath}`);
+  console.log(JSON.stringify({ outputPath, journeys }));
 }
 
 try {
