@@ -8,7 +8,9 @@ The job MUST compile the journeys that exist in the current application by inspe
 
 The job MAY receive a `domain` in which to store its output.
 
-The `domain` MUST be a kebab-case identifier. If no `domain` is provided, the agent MUST use `global-designs`.
+The `domain` MUST be a kebab-case identifier. 
+
+If the user does not explicitly provide a `domain`, the agent MUST use `global-designs`. The agent MUST NOT infer a domain from the job name, application area, or output content.
 
 ## Process
 

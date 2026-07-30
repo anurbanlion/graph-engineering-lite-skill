@@ -129,22 +129,6 @@ DESTINATION_PATH="/home/user/projects/supaChikiArena/.codex/skills/graph-enginee
 
 `SOURCE_PATH` may be relative to the repository root or absolute. `DESTINATION_PATH` must be an absolute path identifying the exact folder that will be replaced by the source folder.
 
-### Synchronization flow
-
-When `sync-folder.sh` runs, it:
-
-1. Rejects command-line arguments because configuration is stored in the wrapper.
-2. Resolves the repository root and the configured source folder.
-3. Validates that Git, Node.js, the Node.js script, and the Git repository are available.
-4. Runs `git pull` in the current repository.
-5. Stops without modifying the destination if `git pull` fails.
-6. Invokes `sync-folder.mjs` with the resolved source and destination paths.
-7. Verifies that the source folder exists before touching the destination.
-8. Rejects identical or dangerously nested source and destination paths.
-9. Removes the destination folder only when it already exists.
-10. Creates missing parent directories and recursively copies the source folder.
-11. Prints the resolved source and destination after a successful synchronization.
-
 All failures are printed to standard error and return a non-zero exit code.
 
 ### How to use the sync
@@ -159,18 +143,6 @@ Review `SOURCE_PATH` and `DESTINATION_PATH` in `sync-folder.sh`, then run:
 
 ```sh
 ./sync-folder.sh
-```
-
-With the repository's current configuration, this command synchronizes:
-
-```text
-<repository-root>/graph-engineering
-```
-
-into:
-
-```text
-/home/user/projects/supaChikiArena/.codex/skills/graph-engineering
 ```
 
 The destination folder is replaced completely on each successful run. Changes already present only in the destination folder are therefore deleted.
