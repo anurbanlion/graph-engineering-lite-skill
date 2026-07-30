@@ -113,12 +113,18 @@ export async function getCart(input: GetCartInput): Promise<Cart> {
 }
 ```
 
-Multiple use cases MAY add operations to the same service files:
+Several use cases MAY add several operations to the same pair of service files:
 
 ```txt
-load-cart     -> getCart
-add-cart-item -> addCartItem
-remove-item   -> removeCartItem
+cart.service.ts
+├── getCart
+├── addCartItem
+└── removeCartItem
+
+cart.mock.service.ts
+├── getCart
+├── addCartItem
+└── removeCartItem
 ```
 
 ## Output
