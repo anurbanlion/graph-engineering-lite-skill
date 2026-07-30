@@ -3,7 +3,7 @@
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const PROJECT_DATA_DIRECTORY = ".job-graph-engineering";
+const PROJECT_DATA_DIRECTORY = ".graph-engineering";
 
 export function resolvePaths(importMetaUrl) {
   const scriptDirectory = dirname(fileURLToPath(importMetaUrl));

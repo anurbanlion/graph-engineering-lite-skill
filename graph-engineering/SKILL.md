@@ -1,10 +1,9 @@
 ---
+name: graph-engineering
+description: Executes named jobs and graphs. Use when the user says to execute or list a job or graph, including requests such as "execute the compile-application-journeys job" or "run the application-design graph."
+---
 
-name: job-graph-engineering
-description: Executes reusable jobs defined in the jobs directory.
-------------------------------------------------------------------
-
-# Job Graph Engineering
+# Graph Engineering
 
 - The agent MUST select and execute the appropriate job or graph according to an explicit user request.
 

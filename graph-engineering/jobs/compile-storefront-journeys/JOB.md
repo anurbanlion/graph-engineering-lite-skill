@@ -41,17 +41,9 @@ Formatting and output writing are handled automatically by the script.
 # Prompt examples
 
 ```txt
-Using the job-graph-engineering local skill, execute the
-
-- compile-application-journeys
-
-job.
+Execute the compile-storefront-journeys job.
 ```
 
 ```txt
-Using the job-graph-engineering local skill, execute the
-
-- compile-application-journeys
-
-job using the domain application-designs.
+Execute the compile-storefront-journeys jobusing the domain application-designs.
 ```
