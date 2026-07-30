@@ -34,22 +34,17 @@ These files MUST already exist. When one is missing, the job MUST fail and repor
 
 ## Process
 
-### 1. Define the service contract
+### 1. Define the contract
 
-For every use case, the agent MUST determine:
+For every use case, the agent MUST determine the service operation name, input type, result type, and expected errors.
 
-* Service operation name.
-* Input type.
-* Result type.
-* Expected errors.
+The operation MUST represent backend communication or data adaptation. It MUST NOT contain use-case orchestration.
 
-The service operation MUST represent backend communication or data adaptation. It MUST NOT contain use-case orchestration.
-
-### 2. Explore the implementation context
+### 2. Explore the context
 
 The agent MUST inspect only the files needed to understand:
 
-* How the frontend currently requests or consumes the data.
+* How the frontend requests or consumes the data.
 * Existing service conventions and shared types.
 * Available backend routes, handlers, SDKs, or clients.
 * Backend request and response DTOs.
@@ -61,7 +56,7 @@ The agent MUST NOT invent endpoints, DTO fields, or backend capabilities.
 
 ### 3. Plan the adaptation
 
-Before editing, the agent MUST produce a concise plan per use case containing:
+Before editing, the agent MUST produce a concise plan per use case:
 
 ```txt
 Use case: load-cart
@@ -83,15 +78,15 @@ Both implementations MUST expose compatible method names, parameters, return typ
 
 The production service MUST use the existing backend integration.
 
-The mock service MUST return deterministic data. When an operation mutates data, the mock MAY maintain the minimum module-scoped state needed for later calls to observe the mutation.
+The mock service MUST return deterministic data. A mutating operation MAY keep the minimum module-scoped state needed for later calls to observe the mutation.
 
 The agent MAY add stable endpoints, keys, defaults, or fixtures to `[journey].service.const.ts`.
 
-The agent MUST preserve unrelated existing exports and behavior. It MUST NOT replace complete service files, implement factories, repositories, use cases, server actions, or UI code.
+The agent MUST preserve unrelated exports and behavior. It MUST NOT replace complete service files or implement factories, repositories, use cases, server actions, or UI code.
 
-## Implementation examples
+## Examples
 
-A production service operation MAY adapt a backend DTO:
+Production service with DTO adaptation:
 
 ```ts
 export async function getCart(input: GetCartInput): Promise<Cart> {
@@ -107,7 +102,7 @@ export async function getCart(input: GetCartInput): Promise<Cart> {
 }
 ```
 
-The corresponding mock MUST expose the same contract:
+Compatible mock service:
 
 ```ts
 export async function getCart(input: GetCartInput): Promise<Cart> {
@@ -118,9 +113,9 @@ export async function getCart(input: GetCartInput): Promise<Cart> {
 }
 ```
 
-Multiple use cases MAY add multiple operations to the same pair of files:
+Multiple use cases MAY add operations to the same service files:
 
-```text
+```txt
 load-cart     -> getCart
 add-cart-item -> addCartItem
 remove-item   -> removeCartItem
@@ -130,7 +125,7 @@ remove-item   -> removeCartItem
 
 The job produces project code, not a managed run artifact.
 
-On success, the agent MUST report the use cases implemented, service operations added, DTO adaptations performed, backend limitations found, and tests executed.
+On success, the agent MUST report the use cases implemented, operations added, DTO adaptations performed, backend limitations found, and tests executed.
 
 On failure, the agent MUST report the affected use case and the missing or unsupported dependency.
 
