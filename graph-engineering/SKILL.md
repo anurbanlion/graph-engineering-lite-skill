@@ -127,6 +127,7 @@ $ node scripts/read-graphs.mjs build-application-use-cases
 
 * `name` identifies the graph.
 * `version` identifies the graph definition version.
+* `prompts` MAY contain a non-empty array of non-empty example prompts that show users how to invoke the graph.
 * `initial` identifies the first job to execute.
 * `jobs` contains the jobs participating in the graph.
 * Each key inside `jobs` MUST match an available job name.
@@ -139,4 +140,3 @@ $ node scripts/read-graphs.mjs build-application-use-cases
 * The graph runner MUST report an invalid graph when `initial`, `onDone`, or `onError` references an unknown job or terminal outcome.
 * Inputs, user interaction, output resolution, and output writing remain controlled by each job and the skill workflow.
 * The graph MUST NOT duplicate the internal process, inputs, or output format already defined by a job.
-
