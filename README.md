@@ -1,124 +1,106 @@
-# Graph Engineering Lite Skill
+# Graph Engineering Lite
 
-A lightweight GitHub-hosted skill for defining, validating, and executing reusable **jobs** and **graphs** through a clear, file-based workflow.
+Graph Engineering Lite is a skill for running reusable work through **jobs** and **graphs**. From a user's perspective, you do not operate the internal scripts directly. You ask the agent to execute a job or graph, and the skill handles discovery, selection, validation, execution, outputs, and logging.
 
-The repository centers on the `job-graph-engineering` skill, which lets an agent discover available jobs or graphs, select the best match for an explicit user request, validate graph definitions, execute the referenced workflow, and write outputs to deterministic project paths.
+## Core concepts
 
-## What this project provides
+### Job
 
-- A convention for reusable jobs stored as `JOB.md` files.
-- A convention for workflow graphs stored as graph definitions.
-- Scripts for listing, reading, and validating jobs and graphs.
-- Deterministic output-path resolution for generated artifacts.
-- Execution logging under the consuming project's `logs` directory.
-- Guardrails that require explicit user intent before creating or running jobs and graphs.
+A **job** is a reusable unit of work with a specific purpose, such as analyzing use cases, generating documentation, or implementing part of an application. Each job defines the instructions the agent must follow and, when applicable, the output it must produce.
+
+Use a job when the request can be completed as one self-contained workflow.
+
+Example requests:
+
+- "Run the job that analyzes journey use cases."
+- "Execute the API documentation job for this project."
+
+### Graph
+
+A **graph** connects multiple jobs into a larger workflow. It defines which job runs first and what should happen after each job succeeds or fails.
+
+Use a graph when the request requires several coordinated steps rather than one isolated task.
+
+Example requests:
+
+- "Run the graph that builds the application use cases."
+- "Execute the application design graph."
+
+### Run
+
+A **run** is one execution of a job within a project. When a job produces an artifact, the skill stores it under the project's `.job-graph-engineering/runs` directory. Runs are grouped by domain and job name so outputs remain organized and traceable.
+
+```text
+<project-folder>/
+└── .job-graph-engineering/
+    ├── logs/
+    │   └── executions.log
+    └── runs/
+        └── <domain>/
+            └── <job-name>/
+                └── <output-file>
+```
+
+The **project folder** is the user's working project. `.job-graph-engineering` is the skill-managed directory created inside that project for execution data.
+
+## How it works
+
+1. You explicitly ask the agent to run a job or graph.
+2. The skill discovers the available options and selects the one that best matches your request.
+3. For a job, the skill reads and executes that job's instructions.
+4. For a graph, the skill validates the workflow and begins with its initial job.
+5. The skill follows the graph's success or failure transitions until it completes or aborts.
+6. Generated outputs are written to the appropriate run directory, and execution activity is logged.
+
+The skill does not create or execute jobs or graphs without an explicit request.
+
+## Features
+
+- **Reusable jobs:** define focused workflows once and run them across projects.
+- **Composable graphs:** combine jobs into multi-step processes with success and failure paths.
+- **Automatic discovery:** selects from the jobs or graphs available in the skill.
+- **Graph validation:** checks workflow references before execution begins.
+- **Managed outputs:** stores generated artifacts in deterministic project locations.
+- **Execution logs:** records activity under `.job-graph-engineering/logs`.
+- **Safe execution:** requires explicit user intent and stops invalid graphs before downstream work runs.
+- **Resumable interaction:** a graph may pause for missing user input and continue from the same job once that input is provided.
+
+## Using the skill
+
+Ask the agent for the outcome you want and mention a job or graph when you already know its name. You do not need to invoke the internal scripts yourself.
+
+```text
+Run the analyze-journey-use-cases job for the checkout flow.
+```
+
+```text
+Execute the build-application-use-cases graph for this project.
+```
+
+When you do not know the available names, ask the agent to show the jobs or graphs first.
+
+```text
+What jobs are available in Graph Engineering Lite?
+```
+
+```text
+Show me the available graphs and explain what each one does.
+```
 
 ## Repository structure
+
+The repository contains the skill definition, reusable job definitions, graph definitions, and internal scripts used by the agent.
 
 ```text
 job-graph-engineering/
 ├── SKILL.md
-├── graphs/
-│   └── <graph-name>/
-│       └── GRAPH.json
 ├── jobs/
 │   └── <job-name>/
 │       └── JOB.md
+├── graphs/
+│   └── <graph-name>/
+│       └── GRAPH.json
 └── scripts/
-    ├── list-jobs.mjs
-    ├── read-jobs.mjs
-    ├── list-graphs.mjs
-    ├── read-graphs.mjs
-    ├── validate-graph.mjs
-    ├── resolve-output-path.mjs
-    └── lib/
 ```
 
-Generated outputs are resolved inside the consuming project using a structure similar to:
-
-```text
-<project-folder>/
-├── logs/
-│   └── executions.log
-└── runs/
-    └── <domain>/
-        └── <job-name>/
-            └── <output-file>
-```
-
-## Requirements
-
-- Node.js with ES module support.
-- A project root from which the skill scripts can be executed.
-- Explicit user intent before a job or graph is created or executed.
-
-## Working with jobs
-
-List the available jobs from the project root:
-
-```bash
-node job-graph-engineering/scripts/list-jobs.mjs
-```
-
-Read the selected job definition:
-
-```bash
-node job-graph-engineering/scripts/read-jobs.mjs <job-name>
-```
-
-Before writing a job output, resolve the exact destination path:
-
-```bash
-node job-graph-engineering/scripts/resolve-output-path.mjs <domain> <job-name>
-```
-
-Jobs are selected by name before their definitions are read. Each job lives in its own directory and defines its workflow in `JOB.md`.
-
-## Working with graphs
-
-List the available graphs:
-
-```bash
-node job-graph-engineering/scripts/list-graphs.mjs
-```
-
-Read a selected graph:
-
-```bash
-node job-graph-engineering/scripts/read-graphs.mjs <graph-name>
-```
-
-Validate a graph before execution:
-
-```bash
-node job-graph-engineering/scripts/validate-graph.mjs 1.0 <graph-name>
-```
-
-A graph defines an initial job, job-specific instructions, success transitions through `onDone`, and failure transitions through `onError`. Terminal outcomes are `complete` and `abort`.
-
-## Execution model
-
-1. Receive an explicit user request.
-2. List the available jobs or graphs.
-3. Select the single best match by name.
-4. Read only the selected definition.
-5. Validate the graph when applicable.
-6. Resolve the output path when the selected job produces a file.
-7. Execute the workflow and follow its transitions.
-8. Record outputs and execution activity in the consuming project.
-
-## Design principles
-
-- **Explicit execution:** nothing runs without a direct user request.
-- **Discover before reading:** available names are listed before a definition is selected.
-- **Deterministic outputs:** scripts resolve output locations instead of relying on ad hoc paths.
-- **Composable workflows:** graphs coordinate reusable jobs without duplicating each job's internal process.
-- **Fail clearly:** invalid graph references or failed validation stop execution before downstream work begins.
-
-## Current scope
-
-This repository provides the core conventions, scripts, and example job definitions for lightweight graph-based orchestration. It is intentionally small and file-driven so that workflows remain easy to inspect, version, review, and extend.
-
-## Contributing
-
-When adding a job, create a dedicated directory containing a `JOB.md` definition and use RFC-style normative language for requirements. When adding a graph, ensure every referenced job exists and validate the graph before submitting changes.
+The scripts are implementation details that support discovery, reading, validation, output-path resolution, and logging. Normal users interact with the skill through natural-language requests to the agent.
