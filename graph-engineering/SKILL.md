@@ -107,8 +107,10 @@ The agent MUST use RFC-style normative language when creating a new job.
 7. The agent MUST begin execution with the job referenced by `initial`.
 8. The agent MUST execute each job according to the `## Executing jobs` section and the additional `instructions` defined for that job in the graph.
 9. If a job requires an input that is not available, the agent MAY pause the graph execution, ask the user for the missing input, and resume the same job after receiving it.
-10. After a successful job execution, the agent MUST continue with the job or terminal outcome defined by `onDone`.
-11. After a failed job execution, the agent MUST continue with the job or terminal outcome defined by `onError`.
+10. When a job prints structured data to standard output for a downstream job, the agent MUST preserve and pass that data according to the graph instructions.
+11. The agent MUST NOT inspect a managed output artifact to derive a downstream job input unless the selected job or graph explicitly requires artifact inspection.
+12. After a successful job execution, the agent MUST continue with the job or terminal outcome defined by `onDone`.
+13. After a failed job execution, the agent MUST continue with the job or terminal outcome defined by `onError`.
 
 If no available graph name reasonably matches the user request, the agent MUST inform the user that no suitable graph is available.
 
@@ -139,4 +141,6 @@ $ node scripts/read-graphs.mjs build-application-use-cases
 * A missing required input is not automatically an error. The agent SHOULD ask the user for the missing input and resume execution.
 * The graph runner MUST report an invalid graph when `initial`, `onDone`, or `onError` references an unknown job or terminal outcome.
 * Inputs, user interaction, output resolution, and output writing remain controlled by each job and the skill workflow.
+* Structured standard output is the preferred interface for passing machine-readable values between graph jobs.
+* Managed output artifacts MUST NOT be treated as implicit downstream input interfaces.
 * The graph MUST NOT duplicate the internal process, inputs, or output format already defined by a job.
