@@ -10,16 +10,14 @@
     "jobs": {
         "compile-storefront-use-cases": {
             "instructions": [
-                "Use global-designs as the run/<domain> name.",
-                "Capture the JSON object printed to stdout and preserve its journeys array for the next job.",
-                "Do not open or inspect the generated output artifact to obtain journey identifiers."
+                "Use global-designs as the run/<domain> name."
             ],
             "onDone": "scaffold-journey-architecture",
             "onError": "abort"
         },
         "scaffold-journey-architecture": {
             "instructions": [
-                "Use only the journey identifiers from the previous job stdout journeys array.",
+                "Use only the journeys array returned by the previous job.",
                 "Pass every journey identifier to the script with a repeated --journey option.",
                 "Do not read a managed output file to discover or normalize journey identifiers."
             ],
