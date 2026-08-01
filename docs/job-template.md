@@ -1,21 +1,14 @@
-# Job Template
-
-Copy this template into:
-
-```txt
-graph-engineering/jobs/<job-name>/JOB.md
-```
-
-Remove sections that do not apply. Replace all bracketed placeholders.
-
-```md
 # [Job Title]
+
+> Location: `graph-engineering/jobs/<job-name>/JOB.md`  
+
+> Note: The job directory name MUST be a kebab-case identifier (e.g., `analyze-journey-use-cases`). The document heading SHOULD be the human-readable title of that identifier.
 
 ## Objective
 
-The job MUST [describe the single owned outcome].
+The job MUST [define the job's responsibility and target outcome].
 
-The job MUST NOT [state the most important scope exclusion, when needed].
+The job MUST NOT [state explicit non-goals, out-of-scope operations, or boundaries, ONLY when necessary].
 
 ## Inputs
 
@@ -24,35 +17,21 @@ The job MUST receive:
 - [required input];
 - [required input].
 
+> Note: Inputs may originate from user parameters, previous job artifacts, explicit source or media files, or workspace discovery.
+
 The job MAY receive:
 
-- [optional constraint or context].
+- [optional constraint, context, or `domain` parameter].
 
-The agent MUST [discover or infer a value] when [condition].
+> Note: When producing or consuming domain-bound artifacts, the job MUST receive a kebab-case domain identifier.
 
-Example:
+## Scope (Optional)
 
-```txt
-[minimum valid user input or previous-job output]
-```
-
-## Required files
-
-The following files MUST already exist:
-
-```txt
-[path/to/required-file]
-[path/to/another-file]
-```
-
-When a required file is missing, the job MUST fail and report its path.
-
-## Scope
+> Note: Include this section only when file inspection, mutation, or protection paths require strict boundaries.
 
 The agent MAY inspect:
 
 ```txt
-[allowed/path]
 [allowed/path]
 ```
 
@@ -66,117 +45,63 @@ The agent MUST NOT modify the following unless the user explicitly requests it:
 
 ```txt
 [protected/path]
-[protected/path]
 ```
+
+> Note: Omit unnecessary path constraints; defining protected paths or write boundaries is sufficient for most scoped jobs.
 
 ## Process
 
-### 1. [First stage]
+> Note: Simple jobs MAY use a linear sequential workflow. Jobs requiring exploration, state synthesis, implementation, or verification SHOULD structure execution into ordered named stages. The process MUST specify deterministic operations, decision criteria, and operational boundaries, and MUST NOT document internal cognitive reasoning.
 
-The agent MUST [observable responsibility].
+### Option A: Short Ordered Sequence (Simple Job)
 
-The agent MUST NOT [constraint].
+1. The agent MUST [first operation].
+2. The agent MUST [second operation].
+X. The agent MUST [final operation or validation step].
 
-### 2. [Exploration or planning stage]
+### Option B: Named Stages (Complex Job)
 
-The agent MUST inspect [relevant context] to determine:
+**1. [Stage Name]**
 
-- [decision or fact];
-- [decision or fact].
-
-Before editing, the agent MUST produce a concise plan containing:
-
-```txt
-[plan field]: [example value]
-[plan field]: [example value]
-```
-
-### 3. [Implementation or transformation stage]
-
-The agent MUST [perform the bounded work].
-
-The agent MUST preserve [existing behavior or unrelated content].
-
-### 4. Validate
-
-The agent MUST verify:
-
-- [required outcome];
-- [compatibility or formatting rule];
-- [test or validation rule].
-
+1. The agent MUST [operation, decision, or validation step for this stage]
+2. The agent MUST [second operation].
+X. The agent MUST [final operation or validation step].
 ## Output
 
-The job produces [project code / a managed Markdown artifact / structured standard output].
+The job MUST produce [deliverable specification: e.g., persisted Markdown artifact or repository source code].
 
-The canonical result is:
+Output serialization and formatting are executed [manually by the agent / deterministically by script].
 
-```txt
-[output path or format]
+> Note: Include representative output schemas or structural examples below matching the job deliverables.
+
+**Markdown Document Output (when applicable)**
+
+```md
+# [Output Title]
+
+[Example table, section structure, or output content]
 ```
 
-On success, the agent MUST report:
-
-- [completed unit];
-- [changes or findings];
-- [validation result].
-
-On failure, the agent MUST report [affected input, file, domain, or dependency].
-
-## Script
-
-The agent MUST execute:
-
-```bash
-node scripts/custom/[script-name].mjs [arguments]
-```
-
-The agent MUST NOT reproduce the script's deterministic workflow manually.
-
-### Output modes
-
-Use this subsection only when the job has both a managed output and an executable script.
-
-Default mode MUST execute the job and write a new managed artifact.
-
-`--stdout` MUST execute the job, write the artifact, and print the complete generated content to standard output.
-
-`--replay` MUST skip generation, locate the latest successful output for the same job and domain, and print it to standard output.
-
-`--stdout` and `--replay` MUST be mutually exclusive.
-
-When no replayable output exists, the script MUST report the error through standard error and exit non-zero.
-
-## Examples
-
-[Add a representative file structure, command, table, output, or implementation example.]
+### Code / Directory Structure Output (when applicable)
 
 ```txt
-[example]
+[generic/path/to/output/files]
+└── [example-file.ts]
 ```
 
-# Prompt examples
+On successful completion, the agent MUST report:
+
+- [completed unit, artifact location, file link, or execution summary];
+- [changes, findings, or handoff values].
+
+On failure, the agent MUST report [error context, failing input, missing dependency, or target path].
+
+## Prompt examples
 
 ```txt
-[concise prompt that selects this job]
+[concise user prompt triggering this job]
 ```
 
 ```txt
-[second representative prompt]
+[secondary prompt demonstrating contextual execution or parameters]
 ```
-```
-
-## Section checklist
-
-Before accepting a new job, verify that:
-
-- the objective owns one bounded outcome;
-- user inputs and agent-discovered values are distinct;
-- the minimum valid input has an example;
-- required files are explicit;
-- inspection, modification, and protected paths are explicit when relevant;
-- the process is ordered and testable;
-- output ownership and format are explicit;
-- success and failure behavior are explicit;
-- scripts and output modes are documented only when applicable; and
-- prompt examples do not add hidden requirements.
