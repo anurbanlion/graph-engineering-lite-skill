@@ -17,7 +17,7 @@ The job MUST receive at least one of the following:
 
 **1. Context Synthesis & Clarification**
 
-1. The agent MUST execute `node scripts/read-job-template.mjs` to retrieve the canonical job template and inspect the provided inputs.
+1. The agent MUST execute `node scripts/read-job-template.mjs` or `graph-engineering/templates/job-template.md` to retrieve the canonical job template and inspect the provided inputs.
 2. If the user input is ambiguous or incomplete, the agent MUST ask the user clarifying questions regarding required inputs, process steps, scope boundaries, or expected outputs before generating the document.
 3. If transforming an existing or legacy job, the agent MUST filter out runtime execution rules (such as Echo/Latest mode definitions) and convert internal reasoning into RFC-style normative requirements. Additionally, if the existing job conflicts with the canonical template, risks losing critical operational information, or lacks required template fields, the agent MUST ask the user clarifying questions before generating the document.
 
@@ -33,7 +33,7 @@ The job MUST receive at least one of the following:
    ```txt
    graph-engineering/jobs/<job-name>/JOB.md
    ```
-2. The agent MUST verify that the generated job matches the structure retrieved by `node scripts/read-job-template.mjs`.
+2. The agent MUST verify that the generated job matches the structure retrieved by `node scripts/read-job-template.mjs` or `graph-engineering/templates/job-template.md`.
 
 ## Output
 
