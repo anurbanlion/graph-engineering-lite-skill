@@ -50,6 +50,7 @@ function getJourneyFiles(journey) {
 
   return [
     join(journeyRoot, "index.ts"),
+    join(journeyRoot, "domain", "contracts", `${journey}.contract.ts`),
     join(
       journeyRoot,
       "infrastructure",
