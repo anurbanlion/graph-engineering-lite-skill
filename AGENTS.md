@@ -6,6 +6,7 @@ NEVER USE git push.
 
 # Commit Suggestions
 
+- You MUST only suggest commet message when the user explicitly request it.
 - When suggesting a commit message, you MUST first inspect the relevant Git diff: `git diff --cached` for staged changes, `git diff` for unstaged changes, or both when needed.
 - You MUST provide exactly three proposals using `feat`, `fix`, or `chore`, optionally with a scope.
 - Each proposal MUST follow: `git commit -m "<message>"`.

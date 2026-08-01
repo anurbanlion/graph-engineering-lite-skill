@@ -9,11 +9,17 @@ description: Executes named jobs and graphs. Use when the user says to execute o
 
 - The agent MUST NOT execute or create a job or graph unless the user explicitly requests it.
 
+## Writing style
+
+The agent MUST use RFC-style normative language when creating a new job, graphs instructions or general writing style.
+
 ## Directory structure
 
 ```text
 job-graph-engineering/
 ├── SKILL.md
+├── templates/
+│   └── job-template.md
 ├── graphs/
 │   └── <graph-name>/
 │       └── GRAPH.json
@@ -21,17 +27,25 @@ job-graph-engineering/
 │   └── <job-name>/
 │       └── JOB.md
 └── scripts/
-    ├── list-jobs.mjs
-    ├── read-jobs.mjs
     ├── resolve-output-path.mjs
+    ├── dump-latest-output.mjs
+    ├── read-jobs.mjs
+    ├── list-jobs.mjs
+    ├── list-graphs.mjs
+    ├── read-graphs.mjs
+    ├── validate-graph.mjs
     ├── lib/
     │   ├── activity-logs.mjs
     │   └── resolve-paths.mjs
     └── custom/
 ```
 
+* Each job and graph MUST be stored in its own directory.
+* Each job definition MUST be stored in a `JOB.md` file.
+* Each graph definition MUST be stored in a `GRAPH.json` file.
+
 ```text
-{project-folder}/
+.{local-skill-folder}/
 ├── logs/
 │   └── executions.log
 └── runs/
@@ -40,90 +54,69 @@ job-graph-engineering/
             └── <output-file>
 ```
 
-* Each job and graph MUST be stored in its own directory.
-* Each job definition MUST be stored in a `JOB.md` file.
-* Each graph definition MUST be stored in a `GRAPH.md` file.
+* .`{local-skill-folder}` is resolved by the internal skill scripts and is located on the project folder the skill is being used.
 
-* `{project-folder}` MUST be resolved by the internal skill scripts.
+## Job output types
 
-## Executing Scripts
+A job MAY produce a Project Output, a Managed Output, or both:
 
-- The agent MUST execute skill scripts from the project root using project-relative paths.
-- The agent MUST NOT read, inspect, modify, or debug a skill script unless the user explicitly requests it.
-- A script issue includes:
-  - A technical failure, such as a non-zero exit code, runtime error, or unavailable command.
-  - An unexpected result that conflicts with the requested operation or expected skill behavior, even when the script exits successfully.
-- When a script issue occurs, the agent MUST report the command, current working directory, and relevant output.
-- The agent MUST NOT diagnose the issue automatically. The agent MUST ask the user whether they want the issue diagnosed before reading or inspecting any script.
+- **Project Output**: Creates or modifies repository files directly (such as source code, configuration files, tests, or generated directory structures).
+- **Managed Output**: Creates a persisted Markdown document artifact produced by a run, stored at `.{local-skill-folder}/runs/<domain>/<job-name>/OUTPUT-timestamp.md`.
 
 ## Executing jobs
+
+**Job discovery**
 
 1. The agent MUST execute `node scripts/list-jobs.mjs` before selecting a job.
 2. The agent MUST use the returned names to identify the single job that best matches the explicit user request.
 3. The agent MUST NOT read any job definition before selecting that job by name.
-4. The agent MUST read the selected job by executing `node scripts/read-jobs.mjs <job-name>`
-5. The agent MUST execute the selected job according to its `JOB.md` instructions.
-
-If no available job name reasonably matches the user request, the agent MUST inform the user that no suitable job is available.
-
-Example:
-```bash
-$ node scripts/list-jobs.mjs
-analyze-page-shell-use-cases
-generate-api-documentation
-implement-page-shell
-
-$ node scripts/read-jobs.mjs analyze-page-shell-use-cases
-```
+4. The agent MUST read the selected job by executing `node scripts/read-jobs.mjs <job-name>`.
 
 > Note: `read-jobs.mjs` MAY accept multiple job names, but the agent MUST NOT use that capability in the current workflow.
 
-## Writing outputs
+> Note: If no available job name reasonably matches the user request, the agent MUST halt execution and inform the user that no suitable job is available.
 
-1. If the selected job produces an output file, the agent MUST define a short kebab-case `domain` that describes the current execution (ex. cart-journey).
-2. The agent MUST execute `bash node scripts/resolve-output-path.mjs <domain> <job-name>` BEFORE executing the job.
-3. The agent MUST write the complete job output to the exact path returned by the script.
+**Job pre-execution**
 
-- The agent MUST NOT create an alternative output path manually.
+5. If a job requires an input that is not available, the agent MUST pause the job execution, ask the user for the missing input, and resume the same job after receiving it.
+6. If the selected job produces a managed output, the agent MUST resolve the output path by executing `node scripts/resolve-output-path.mjs <domain> <job-name>`. The agent MUST NOT create an alternative output path manually.
+7. If executing in **Latest mode**, the agent MUST **NOT** execute the `JOB.md` process, create project files, or run job scripts (this affects execution regardless of whether the job produces a managed output, project output, or both).
+8. If executing in **Latest mode** and the job produces a managed output, the agent MUST dump the latest output into context by executing `node scripts/dump-latest-output.mjs <domain> <job-name>`. If no output exists, report failure and halt.
 
-Example:
+**Job execution**
 
-```bash
-node scripts/resolve-output-path.mjs user-management-page analyze-page-shell-use-cases
-```
-
-## Creating jobs
-
-The agent MUST use RFC-style normative language when creating a new job.
+9. If the selected job produces project outputs, the agent MUST execute the job process according to its `JOB.md` instructions to create or modify repository files.
+10. If the selected job produces a managed output, the agent MUST execute the job process according to its `JOB.md` instructions and write the output Markdown artifact to the path resolved in **Job pre-execution**.
+11. For project outputs, the agent MUST present a summary of created or modified project files and file links to the user.
+12. For managed outputs, the agent MUST present the file link of the generated artifact to the user.
+13. If executing in **Echo mode** and the job produces a managed output, the agent MUST dump the managed output into context by executing `node scripts/dump-latest-output.mjs <domain> <job-name>`.
 
 ## Executing graphs
+
+**Graph discovery**
 
 1. The agent MUST execute `node scripts/list-graphs.mjs` before selecting a graph.
 2. The agent MUST use the returned names to identify the single graph that best matches the explicit user request.
 3. The agent MUST NOT read any graph definition before selecting that graph by name.
 4. The agent MUST read the selected graph by executing `node scripts/read-graphs.mjs <graph-name>`.
+
+> Note: `read-graphs.mjs` MAY accept multiple graph names, but the agent MUST NOT use that capability in the current workflow.
+
+> Note: If no available graph name reasonably matches the user request, the agent MUST halt execution and inform the user that no suitable graph is available.
+
+**Graph validation**
+
 5. The agent MUST validate the selected graph by executing `node scripts/validate-graph.mjs 1.0 <graph-name>` before executing its first job.
 6. If graph validation fails, the agent MUST stop the graph execution and inform the user of the validation errors.
+
+**Graph execution**
+
 7. The agent MUST begin execution with the job referenced by `initial`.
 8. The agent MUST execute each job according to the `## Executing jobs` section and the additional `instructions` defined for that job in the graph.
-9. If a job requires an input that is not available, the agent MAY pause the graph execution, ask the user for the missing input, and resume the same job after receiving it.
-10. When a job prints structured data to standard output for a downstream job, the agent MUST preserve and pass that data according to the graph instructions.
-11. The agent MUST NOT inspect a managed output artifact to derive a downstream job input unless the selected job or graph explicitly requires artifact inspection.
-12. After a successful job execution, the agent MUST continue with the job or terminal outcome defined by `onDone`.
-13. After a failed job execution, the agent MUST continue with the job or terminal outcome defined by `onError`.
-
-If no available graph name reasonably matches the user request, the agent MUST inform the user that no suitable graph is available.
-
-Example:
-
-```bash
-$ node scripts/list-graphs.mjs
-build-application-use-cases
-generate-application-design
-implement-application-pages
-
-$ node scripts/read-graphs.mjs build-application-use-cases
-```
+9. If a job requires an input that is not available, the agent MUST pause the graph execution, ask the user for the missing input, and resume the same job after receiving it.
+10. The agent MUST NOT inspect manually a managed output artifact (i.e. reading a file) to derive a downstream job input, a system for the managed output to be visible on context is already taken into account with managed output modes.
+11. After a successful job execution, the agent MUST continue with the job or terminal outcome defined by `onDone`.
+12. After a failed job execution, the agent MUST continue with the job or terminal outcome defined by `onError`.
 
 ## Graph parsing rules
 
@@ -144,3 +137,136 @@ $ node scripts/read-graphs.mjs build-application-use-cases
 * Structured standard output is the preferred interface for passing machine-readable values between graph jobs.
 * Managed output artifacts MUST NOT be treated as implicit downstream input interfaces.
 * The graph MUST NOT duplicate the internal process, inputs, or output format already defined by a job.
+
+## Executing Scripts
+
+- The agent MUST execute skill scripts from the project root using project-relative paths.
+- The agent MUST NOT read, inspect, modify, or debug a skill script unless the user explicitly requests it.
+- A script issue includes:
+  - A technical failure, such as a non-zero exit code, runtime error, or unavailable command.
+  - An unexpected result that conflicts with the requested operation or expected skill behavior, even when the script exits successfully.
+- When a script issue occurs, the agent MUST report the command, current working directory, and relevant output.
+- The agent MUST NOT diagnose the issue automatically. The agent MUST ask the user whether they want the issue diagnosed before reading or inspecting any script.
+
+### Usage examples
+
+```bash
+# List available jobs
+$ node scripts/list-jobs.mjs
+analyze-journey-use-cases
+compile-storefront-journeys
+compile-storefront-use-cases
+create-job
+scaffold-journey-architecture
+```
+
+```bash
+# Read a single job definition
+$ node scripts/read-jobs.mjs compile-storefront-use-cases
+===== JOB: compile-storefront-use-cases =====
+# Compile Storefront Use Cases
+
+## Objective
+...
+===== END JOB: compile-storefront-use-cases =====
+```
+
+```bash
+# Read multiple job definitions
+$ node scripts/read-jobs.mjs compile-storefront-journeys compile-storefront-use-cases
+===== JOB: compile-storefront-journeys =====
+# Compile Storefront Journeys
+...
+===== END JOB: compile-storefront-journeys =====
+===== JOB: compile-storefront-use-cases =====
+# Compile Storefront Use Cases
+...
+===== END JOB: compile-storefront-use-cases =====
+```
+
+```bash
+# Resolve managed output path for a job and domain
+$ node scripts/resolve-output-path.mjs global-designs compile-storefront-journeys
+/home/user/projects/my-project/.local-skill-folder/runs/global-designs/compile-storefront-journeys/OUTPUT-20260801-1053.md
+```
+
+```bash
+# Dump latest managed output content into context
+$ node scripts/dump-latest-output.mjs global-designs compile-storefront-journeys
+===== LATEST MANAGED OUTPUT: global-designs / compile-storefront-journeys (OUTPUT-20260801-1053.md) =====
+# Application Journeys
+
+- account
+- checkout
+- storefront
+===== END LATEST MANAGED OUTPUT =====
+```
+
+```bash
+# List available graphs
+$ node scripts/list-graphs.mjs
+build-application-use-cases
+build-journey-architecture
+```
+
+```bash
+# Read a single graph definition
+$ node scripts/read-graphs.mjs build-application-use-cases
+===== GRAPH: build-application-use-cases =====
+{
+  "name": "build-application-use-cases",
+  "version": "1.0",
+  "initial": "analyze-journey-use-cases",
+  "jobs": {
+    "analyze-journey-use-cases": {
+      "instructions": [
+        "Use <route-journey>-page as the run/<domain> name."
+      ],
+      "onDone": "compile-storefront-use-cases",
+      "onError": "abort"
+    },
+    "compile-storefront-use-cases": {
+      "instructions": [
+        "Use global-designs as the run/<domain> name."
+      ],
+      "onDone": "complete",
+      "onError": "abort"
+    }
+  }
+}
+===== END GRAPH: build-application-use-cases =====
+```
+
+```bash
+# Read multiple graph definitions
+$ node scripts/read-graphs.mjs build-application-use-cases build-journey-architecture
+===== GRAPH: build-application-use-cases =====
+{
+  "name": "build-application-use-cases",
+  "version": "1.0",
+  ...
+}
+===== END GRAPH: build-application-use-cases =====
+===== GRAPH: build-journey-architecture =====
+{
+  "name": "build-journey-architecture",
+  "version": "1.0",
+  ...
+}
+===== END GRAPH: build-journey-architecture =====
+```
+
+```bash
+# Validate a valid graph definition
+$ node scripts/validate-graph.mjs 1.0 build-application-use-cases
+Graph is valid: build-application-use-cases
+Version: 1.0
+Definition: /home/user/projects/my-project/graph-engineering/graphs/build-application-use-cases/GRAPH.json
+```
+
+```bash
+# Validate an invalid graph definition
+$ node scripts/validate-graph.mjs 1.0 invalid-graph
+Graph validation failed: invalid-graph
+- "initial" MUST be a non-empty string.
+```

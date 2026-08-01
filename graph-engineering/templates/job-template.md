@@ -25,9 +25,15 @@ The job MAY receive:
 
 > Note: When producing or consuming domain-bound artifacts, the job MUST receive a kebab-case domain identifier.
 
+Examples:
+
+```txt
+[input examples]
+```
+
 ## Scope (Optional)
 
-> Note: Include this section only when file inspection, mutation, or protection paths require strict boundaries.
+> Note: Include this section only when file inspection, mutation, or protection paths require strict and explicit boundaries.
 
 The agent MAY inspect:
 
@@ -47,30 +53,35 @@ The agent MUST NOT modify the following unless the user explicitly requests it:
 [protected/path]
 ```
 
-> Note: Omit unnecessary path constraints; defining protected paths or write boundaries is sufficient for most scoped jobs.
+> Note: Omit unnecessary path constraints; defining protected paths or write boundaries MAY be sufficient for most scoped jobs.
 
 ## Process
 
-> Note: Simple jobs MAY use a linear sequential workflow. Jobs requiring exploration, state synthesis, implementation, or verification SHOULD structure execution into ordered named stages. The process MUST specify deterministic operations, decision criteria, and operational boundaries, and MUST NOT document internal cognitive reasoning.
+> Note: Simple jobs MAY use a linear sequential workflow. Jobs requiring exploration, state synthesis, implementation, or verification SHOULD structure execution into ordered named stages. The process MUST specify deterministic operations, decision criteria, and operational boundaries, and MUST NOT document internal cognitive reasoning. There is no limit on the number of steps, but as a general rule we should aim to less than 15 steps.
 
-### Option A: Short Ordered Sequence (Simple Job)
+[Option A: Short Ordered Sequence (Simple Job)*]
 
 1. The agent MUST [first operation].
 2. The agent MUST [second operation].
-X. The agent MUST [final operation or validation step].
+3. The agent MUST [final operation or validation step].
 
-### Option B: Named Stages (Complex Job)
+- Additional notes or rules to the process for complex job
+
+[Option B: Named Stages (Complex Job)]
 
 **1. [Stage Name]**
 
 1. The agent MUST [operation, decision, or validation step for this stage]
 2. The agent MUST [second operation].
-X. The agent MUST [final operation or validation step].
+3. The agent MUST [final operation or validation step].
+
+- Additional notes or rules to the process for complex job
+
 ## Output
 
-The job MUST produce [deliverable specification: e.g., persisted Markdown artifact or repository source code].
+The job MUST produce [deliverable specification: Project Output (repository files/code), Managed Output (persisted Markdown artifact), or both].
 
-Output serialization and formatting are executed [manually by the agent / deterministically by script].
+Output generation, serialization and formatting are executed [manually by the agent / deterministically by script].
 
 > Note: Include representative output schemas or structural examples below matching the job deliverables.
 
@@ -82,7 +93,7 @@ Output serialization and formatting are executed [manually by the agent / determ
 [Example table, section structure, or output content]
 ```
 
-### Code / Directory Structure Output (when applicable)
+**Code / Directory Structure Output (when applicable)**
 
 ```txt
 [generic/path/to/output/files]
