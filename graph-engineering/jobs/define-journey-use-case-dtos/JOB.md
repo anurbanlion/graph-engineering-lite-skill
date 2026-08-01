@@ -17,7 +17,7 @@ The job MUST receive:
 
 Each identifier MUST contain lowercase words separated by hyphens.
 
-The agent MUST discover the backend operations, resource shapes, DTO boundaries, and source locations required by the selected use cases.
+The agent MUST discover the backend operations, resource shapes, DTO boundaries, and source locations required by the selected use cases. The agent MUST also inspect relevant existing frontend implementations to identify whether and how they already call those backend capabilities, including the clients, operations, request values, and response shapes currently consumed. Frontend evidence MUST inform the analysis but MUST NOT override the actual backend contract.
 
 The job MAY receive explicit backend paths, modules, routes, schemas, or implementation constraints.
 
@@ -39,6 +39,8 @@ Use cases:
 ## Scope
 
 The agent MAY inspect backend and integration sources required to determine the available data contract, including Medusa routes, modules, SDK usage, handlers, workflows, Supabase queries, database types, and existing adapters.
+
+The agent MAY inspect relevant frontend services, clients, actions, hooks, use cases, pages, or components only to identify existing backend calls and the request or response shapes they currently use.
 
 The agent MAY inspect existing journey contracts to preserve compatible definitions and avoid duplication.
 
@@ -64,7 +66,9 @@ components/
 1. The agent MUST inspect Medusa first for every selected use case.
 2. When Medusa does not expose all required information, the agent MUST inspect established Supabase or project backend sources.
 3. The agent MUST identify the concrete operation, query, route, module, or resource that supplies each required field.
-4. The agent MUST NOT invent backend fields, relations, operations, or guarantees.
+4. The agent MUST inspect relevant existing frontend implementations to identify current backend calls, clients, request values, and consumed response shapes.
+5. Frontend evidence MAY reveal existing integration assumptions or reusable shapes, but the agent MUST validate them against the backend source before defining DTOs.
+6. The agent MUST NOT invent backend fields, relations, operations, or guarantees.
 
 **2. Define DTO boundaries**
 
@@ -119,6 +123,7 @@ On successful completion, the agent MUST report:
 - the journey and use cases analyzed;
 - the DTOs added or reused;
 - the Medusa, Supabase, or backend sources used;
+- any relevant frontend calls or consumed response shapes found;
 - any backend limitations or unresolved fields;
 - the modified contract file.
 
