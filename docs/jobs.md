@@ -2,13 +2,7 @@
 
 A job is a bounded unit of work that can be executed independently or composed inside a graph.
 
-A job defines:
-
-- which inputs it accepts
-- the ordered process it follows
-- the output it produces
-
-A job SHOULD describe one responsibility. It MUST NOT duplicate the internal workflow of another job or depend on knowledge of unrelated jobs.
+A job defines the inputs it accepts, the process it follows, and the output it owns. It SHOULD focus on one responsibility so that it can be reused without depending on unrelated jobs.
 
 ## Location
 
@@ -18,146 +12,73 @@ Each job lives in:
 graph-engineering/jobs/<job-name>/JOB.md
 ```
 
-The directory name MUST be a kebab-case identifier. The document title SHOULD be the human-readable form of that identifier.
+The directory name MUST use kebab case. `JOB.md` contains the human-readable contract for the job.
 
-A job MAY use a script when deterministic file discovery, transformation, output writing, or validation is required.
+A reusable starting point is available in [`docs/job-template.md`](./job-template.md).
 
-## Sections
+## Inputs
 
-Every `JOB.md` SHOULD use the following sections.
+Inputs are the information available when the job begins.
 
-### Objective
+They MAY come directly from the user, from the output of a previous job, from explicitly supplied files, or from project exploration when discovery is part of the job.
 
-Defines the single outcome owned by the job.
+A job MUST distinguish the information the user provides from the information the agent is expected to discover or infer.
 
-The objective MUST describe the result, not a sequence of implementation steps.
+Example:
 
-### Inputs
+```txt
+Journey: cart
+Use cases:
+- load-cart
+- add-cart-item
+```
 
-Defines everything required to begin execution.
+In this example, the user selects the journey and use cases. The job may still discover service operations, DTOs, backend capabilities, existing implementations, and adaptation requirements.
 
-Inputs MAY come from:
+## Process
 
-- the user;
-- structured standard output from a previous job;
-- explicitly supplied files or source code; or
-- project inspection when the job explicitly permits discovery.
+The process describes how the job transforms its inputs into its output.
 
-The section SHOULD include a concrete example showing the minimum valid input.
+A simple job MAY use a short ordered sequence. A job involving exploration, planning, implementation, or validation SHOULD divide the process into named stages.
 
-The job MUST distinguish user-provided inputs from values the agent is expected to discover or infer.
+The process SHOULD describe meaningful operations, decisions, and boundaries. It SHOULD NOT attempt to document the agent's internal reasoning.
 
-### Required files
+## Output
 
-Lists files that MUST exist before execution when applicable.
+The output is the result owned by the job. Jobs commonly produce project outputs, managed outputs, or both.
 
-The job MUST report missing required files rather than silently creating unrelated structure unless creation is part of its objective.
+### Project output
 
-### Process
+A project output creates or modifies repository files, such as source code, configuration, tests, or generated project structure.
 
-Defines the ordered stages of execution.
+The job MUST identify the expected result and the project paths it may affect.
 
-The process SHOULD be divided into named stages when the work includes exploration, planning, implementation, validation, or reporting.
+### Managed output
 
-Each stage MUST define observable responsibilities and constraints. It SHOULD avoid prescribing low-level reasoning that does not affect the result.
+A managed output is a persisted artifact produced by a run, commonly a Markdown document.
 
-### Output
+The persisted Markdown is the canonical record of that run. Because a graph may need the artifact content in its active context, a job with a managed Markdown output SHOULD support two additional execution modes.
 
-Defines the resulting project changes, managed artifact, standard output, or combination of these.
+#### Emit mode
 
-The section MUST state:
+Emit mode executes the job normally, persists the new Markdown artifact, and also places the complete generated content in the graph or conversation context.
 
-- the canonical result;
-- the required format;
-- whether an artifact is written;
-- what is printed on success;
-- what is printed on failure; and
-- whether the result can be consumed by another job.
+This allows the next job to consume the result without locating and opening the artifact. The contextual content MUST represent the persisted artifact and SHOULD NOT be replaced by a summary.
 
-### Examples
+#### Latest mode
 
-Provides representative commands, prompts, structures, or file contents.
+Latest mode does not execute the job's analysis, generation, or transformation process. It locates the latest successful managed output for the same job and relevant domain, then places its complete Markdown content in the graph or conversation context.
 
-Examples MUST illustrate the contract without introducing requirements absent from the normative sections.
+Latest mode MUST NOT create a new managed output. If no matching output exists, the operation MUST fail clearly.
 
-### Prompt examples
+These modes describe graph behavior, not a required command-line interface. A graph MAY express them as job instructions. An implementation MAY provide flags, a job-specific script, or a shared output utility.
 
-Shows concise user requests that should select the job.
+The managed output does not need to be converted into JSON solely for composition. Markdown MAY remain the exchange format when it is the canonical representation and can be consumed directly by the next agent or job.
 
-## Scripts
+Alternative names considered for these concepts include `context`, `publish`, or `forward` for Emit mode, and `replay`, `restore`, or `previous` for Latest mode. `Emit` and `Latest` describe the intended graph behavior without coupling it to standard streams or a specific implementation.
 
-A job SHOULD use a script when its operation benefits from deterministic behavior, including:
+## Script
 
-- locating files or managed outputs;
-- parsing repeated command-line inputs;
-- generating or transforming artifacts;
-- creating predictable project structure;
-- validating identifiers or paths; or
-- emitting exact output contracts.
+A job MAY use a script when part of its process benefits from deterministic behavior, such as locating files, validating inputs, transforming content, writing outputs, or retrieving a previous managed output.
 
-The agent MUST execute the script rather than reproduce its internal deterministic workflow manually.
-
-Scripts MUST send errors to standard error and exit with a non-zero status code on failure.
-
-## Managed outputs
-
-A managed output is a persisted artifact produced by a job, commonly Markdown stored under the repository's run-output convention.
-
-The persisted artifact is the canonical result. Standard output is a delivery channel that allows an agent or downstream job to consume the same content without opening the artifact manually.
-
-Jobs that have both a managed output and an executable script SHOULD support the following modes.
-
-### Default mode
-
-Runs the job and writes a new managed output.
-
-The script MAY print a concise summary, but it SHOULD NOT print the complete artifact unless requested.
-
-### `--stdout`
-
-Runs the normal job process, writes the managed output, and prints the complete generated content to standard output.
-
-The emitted content MUST match the persisted artifact. Summaries, labels, paths, and diagnostics MUST NOT be mixed into standard output while the complete artifact is being emitted.
-
-### `--replay`
-
-Skips analysis, generation, and transformation. It locates the latest successful output for the same job and selected domain and prints the complete persisted content to standard output.
-
-Replay mode MUST NOT create or modify artifacts. If no matching output exists, the script MUST report the error through standard error and exit non-zero.
-
-`--stdout` and `--replay` MUST be mutually exclusive.
-
-Markdown outputs do not need to be converted to JSON. A downstream language model may consume the emitted Markdown directly.
-
-## Output composition
-
-A graph MAY pass standard output from one job to another.
-
-The producing job owns the output format. The consuming job MUST document which values or content it expects and MUST NOT rediscover them from a managed artifact when standard output already provides them.
-
-Jobs SHOULD prefer stable, explicit output contracts. Structured JSON is appropriate when exact machine-readable fields are required. Markdown is appropriate when tables, narrative analysis, or mixed human-readable content are the canonical result.
-
-## Failure behavior
-
-A job MUST fail clearly when:
-
-- required inputs are missing;
-- required files do not exist;
-- identifiers or paths are invalid;
-- required project capabilities cannot be found;
-- a requested operation exceeds the documented scope; or
-- a replayable output does not exist.
-
-Failure reports MUST identify the affected input, file, domain, use case, or dependency whenever possible.
-
-## Writing rules
-
-Job contracts MUST use RFC-style normative terms consistently:
-
-- `MUST` and `MUST NOT` for requirements;
-- `SHOULD` and `SHOULD NOT` for strong defaults; and
-- `MAY` for permitted alternatives.
-
-Requirements SHOULD be concise, testable, and located in the section where they apply.
-
-A job MUST avoid references to unrelated jobs, graphs, or architecture unless that relationship is part of its explicit public contract.
+Scripts are implementation details. The job concept and its graph behavior MUST remain understandable without requiring knowledge of how a script implements them.
