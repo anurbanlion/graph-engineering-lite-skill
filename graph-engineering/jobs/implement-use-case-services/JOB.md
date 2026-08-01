@@ -2,166 +2,149 @@
 
 ## Objective
 
-The job MUST implement the service operations required by one or more use cases.
+The job MUST implement the production and mock service operations required by one or more use cases within a journey.
 
-The journey identifies the service files to update. Each use case is implemented independently.
-
-The job MUST add compatible production and mock service operations without replacing existing implementations.
+The job MUST preserve existing service behavior and MUST NOT implement use-case orchestration, factories, repositories, server actions, or UI code.
 
 ## Inputs
 
 The job MUST receive:
 
-* One journey identifier.
-* One or more use cases.
+- one kebab-case journey identifier;
+- one or more kebab-case use case identifiers.
 
-The journey identifier MUST contain lowercase words separated by hyphens.
+The job MAY receive:
 
-Each use case MUST provide enough information to determine its inputs, result, behavior, and failure conditions. This information MAY come from the user, structured output from a previous job, or explicitly provided frontend source code.
+- explicit project constraints or source paths supplied by the user.
 
-Example:
+The agent MUST discover the service inputs, result types, failure conditions, backend capabilities, and required adaptations from the workspace.
+
+Examples:
 
 ```txt
 Journey: cart
-
 Use cases:
 - load-cart
-  Input: cart identifier
-  Result: cart with its items
-  Failure: cart not found
 - add-cart-item
-  Input: cart identifier, product identifier, quantity
-  Result: updated cart
-  Failure: product unavailable
 ```
 
-The agent MAY inspect the project to resolve the implementation details required by the use cases.
+```txt
+Journey: account
+Use cases:
+- get-current-user
+```
 
-## Required files
+## Scope
 
 The following files MUST already exist for the selected journey:
 
 ```txt
-apis/[journey]/infrastructure/services/
-├── [journey].service.const.ts
-├── [journey].mock.service.ts
-└── [journey].service.ts
+apis/<journey>/infrastructure/services/
+├── <journey>.service.const.ts
+├── <journey>.mock.service.ts
+└── <journey>.service.ts
 ```
 
-When a required file is missing, the job MUST fail and report its path.
+The agent MAY inspect the frontend and backend files required to identify existing usages, implementations, transport contracts, DTOs, adapters, authentication, and error handling.
+
+The agent MAY modify:
+
+```txt
+apis/<journey>/infrastructure/services/<journey>.service.const.ts
+apis/<journey>/infrastructure/services/<journey>.mock.service.ts
+apis/<journey>/infrastructure/services/<journey>.service.ts
+```
+
+The agent MUST NOT modify the following unless the user explicitly requests it:
+
+```txt
+apis/<journey>/application/factories/
+apis/<journey>/application/repositories/
+apis/<journey>/application/use-cases/
+apis/<journey>/infrastructure/actions/
+app/
+components/
+```
+
+When a required service file is missing, the job MUST fail and report its path.
 
 ## Process
 
-### 1. Define the contract
+**1. Explore the use case context**
 
-For every use case, the agent MUST determine the service operation name, input type, result type, and expected errors.
+1. The agent MUST locate how each requested use case is consumed by the frontend.
+2. The agent MUST inspect related service, mock, action, client, SDK, route, handler, DTO, adapter, authentication, and error-handling code.
+3. The agent MUST inspect the relevant Medusa implementation when it is the source of the backend contract.
+4. The agent MUST identify all relevant existing implementations, including production, mock, partial, duplicated, and journey-specific variants.
+5. The agent MUST NOT select an implementation solely because it appears more complete.
+6. The agent MUST NOT invent endpoints, DTO fields, backend capabilities, or unsupported behavior.
 
-The operation MUST represent backend communication or data adaptation. It MUST NOT contain use-case orchestration.
+**2. Define the service contract**
 
-### 2. Explore the context
+1. For each use case, the agent MUST determine the production service operation and the compatible mock operation.
+2. The agent MUST determine each operation's parameters, result type, failure semantics, and data adaptation requirements.
+3. The service operation MUST represent backend communication, persistence, or data adaptation and MUST NOT contain use-case orchestration.
+4. When frontend and backend types differ, the service MUST adapt backend DTOs into the frontend-facing result type.
 
-The agent MUST inspect only the files needed to understand:
-
-* How the frontend requests or consumes the data.
-* Existing service conventions and shared types.
-* Available backend routes, handlers, SDKs, or clients.
-* Backend request and response DTOs.
-* Existing adapters, serializers, authentication, and error handling.
-
-The agent MUST trace the relevant frontend-to-backend path far enough to identify the real transport contract.
-
-The agent MUST NOT invent endpoints, DTO fields, or backend capabilities.
-
-### 3. Plan the adaptation
-
-Before editing, the agent MUST produce a concise plan per use case:
+The agent MUST prepare a concise implementation plan for each use case:
 
 ```txt
 Use case: load-cart
-Service operation: getCart
-Backend operation: GET /cart
-Request adaptation: none
-Response adaptation: CartResponseDto -> Cart
-Mock behavior: return deterministic cart data
+Production operation: getCart
+Mock operation: getCart
+Backend source: GET /store/carts/:id
+Request adaptation: GetCartInput -> route parameters
+Response adaptation: StoreCartResponseDto -> Cart
+Mock behavior: return deterministic cart state
 Files: cart.service.ts, cart.mock.service.ts
 ```
 
-When frontend and backend types differ, the service MUST adapt the backend DTO into the frontend-facing result type.
+**3. Implement the operations**
 
-### 4. Implement
+1. The agent MUST add or complete the required operation in `<journey>.service.ts` using existing backend integrations and project conventions.
+2. The agent MUST add or complete the compatible operation in `<journey>.mock.service.ts`.
+3. Production and mock operations MUST expose compatible names, parameters, result types, and failure semantics.
+4. A mutating mock operation MUST preserve the minimum module-scoped state required for later calls in the same runtime to observe the mutation.
+5. The agent MAY add stable endpoints, keys, defaults, or fixtures to `<journey>.service.const.ts`.
+6. The agent MUST preserve unrelated exports, implementations, and behavior.
+7. The agent MUST NOT replace complete service files when a focused additive change is sufficient.
 
-The agent MUST add the required operation to `[journey].service.ts` and `[journey].mock.service.ts`.
+**4. Validate the result**
 
-Both implementations MUST expose compatible method names, parameters, return types, and failure semantics.
-
-The production service MUST use the existing backend integration.
-
-The mock service MUST return deterministic data. A mutating operation MAY keep the minimum module-scoped state needed for later calls to observe the mutation.
-
-The agent MAY add stable endpoints, keys, defaults, or fixtures to `[journey].service.const.ts`.
-
-The agent MUST preserve unrelated exports and behavior. It MUST NOT replace complete service files or implement factories, repositories, use cases, server actions, or UI code.
-
-## Examples
-
-Production service with DTO adaptation:
-
-```ts
-export async function getCart(input: GetCartInput): Promise<Cart> {
-  const response = await apiClient.get<CartResponseDto>(`/carts/${input.cartId}`);
-
-  return {
-    id: response.id,
-    items: response.lines.map((line) => ({
-      productId: line.product_id,
-      quantity: line.quantity,
-    })),
-  };
-}
-```
-
-Compatible mock service:
-
-```ts
-export async function getCart(input: GetCartInput): Promise<Cart> {
-  return {
-    id: input.cartId,
-    items: [...mockCartItems],
-  };
-}
-```
-
-Several use cases MAY add several operations to the same pair of service files:
-
-```txt
-cart.service.ts
-├── getCart
-├── addCartItem
-└── removeCartItem
-
-cart.mock.service.ts
-├── getCart
-├── addCartItem
-└── removeCartItem
-```
+1. The agent MUST verify that every requested use case has compatible production and mock operations.
+2. The agent MUST verify that DTO adaptations match the discovered backend and frontend contracts.
+3. The agent MUST run focused existing tests or validation commands when the project provides an established convention.
+4. The agent MUST report backend limitations or unsupported operations rather than fabricating an implementation.
 
 ## Output
 
-The job produces project code, not a managed run artifact.
-
-On success, the agent MUST report the use cases implemented, operations added, DTO adaptations performed, backend limitations found, and tests executed.
-
-On failure, the agent MUST report the affected use case and the missing or unsupported dependency.
-
-# Prompt examples
+The job MUST produce a Project Output by modifying the selected journey service files:
 
 ```txt
-Execute the implement-use-case-services job for journey cart and these use cases:
+apis/<journey>/infrastructure/services/
+├── <journey>.service.const.ts
+├── <journey>.mock.service.ts
+└── <journey>.service.ts
+```
 
-- load-cart
-- add-cart-item
+Output generation and validation are executed manually by the agent using the discovered project contracts.
+
+On successful completion, the agent MUST report:
+
+- the journey and use cases processed;
+- the production and mock operations added or completed;
+- the DTO adaptations and backend sources used;
+- the modified files and validation results;
+- any backend limitations or deferred behavior.
+
+On failure, the agent MUST report the affected use case, missing service file, unsupported backend capability, or invalid project contract.
+
+## Prompt examples
+
+```txt
+Execute the implement-use-case-services job for journey cart and the load-cart and add-cart-item use cases.
 ```
 
 ```txt
-Execute the implement-use-case-services job for journey account using the use cases returned by the previous job.
+Execute the implement-use-case-services job for journey account and the get-current-user use case.
 ```
