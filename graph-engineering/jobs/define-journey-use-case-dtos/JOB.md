@@ -36,29 +36,6 @@ Use cases:
 - add-cart-item
 ```
 
-## Scope
-
-The agent MAY inspect backend and integration sources required to determine the available data contract, including Medusa routes, modules, SDK usage, handlers, workflows, Supabase queries, database types, and existing adapters.
-
-The agent MAY inspect relevant frontend services, clients, actions, hooks, use cases, pages, or components only to identify existing backend calls and the request or response shapes they currently use.
-
-The agent MAY inspect existing journey contracts to preserve compatible definitions and avoid duplication.
-
-The agent MAY modify only:
-
-```txt
-apis/[journey]/domain/contracts/[journey].contract.ts
-```
-
-The agent MUST NOT modify the following unless the user explicitly requests it:
-
-```txt
-apis/[journey]/application/
-apis/[journey]/infrastructure/
-app/
-components/
-```
-
 ## Process
 
 **1. Resolve backend capabilities**
