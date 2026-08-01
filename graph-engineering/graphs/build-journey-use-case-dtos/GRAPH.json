@@ -1,0 +1,38 @@
+{
+  "name": "build-journey-use-case-dtos",
+  "version": "1.0",
+  "example-prompts": [
+    "Execute the build-journey-use-case-dtos graph for journey cart using the latest cart-page analysis.",
+    "Run the build-journey-use-case-dtos graph for journey account and domain account-page."
+  ],
+  "initial": "analyze-journey-use-cases",
+  "jobs": {
+    "analyze-journey-use-cases": {
+      "instructions": [
+        "Execute this job in Latest mode.",
+        "Use the graph input domain to locate the latest managed output.",
+        "Keep the complete latest Markdown output in context for downstream jobs."
+      ],
+      "onDone": "scaffold-journey-architecture",
+      "onError": "abort"
+    },
+    "scaffold-journey-architecture": {
+      "instructions": [
+        "Use the journey identifier provided to the graph.",
+        "Do not request the journey use cases during this job."
+      ],
+      "onDone": "define-journey-use-case-dtos",
+      "onError": "abort"
+    },
+    "define-journey-use-case-dtos": {
+      "instructions": [
+        "Use the journey identifier provided to the graph.",
+        "Use every use case identified in the latest analyze-journey-use-cases Markdown currently available in context.",
+        "Convert use case identifiers to kebab-case when required by the job input contract.",
+        "Do not ask the user to provide or select the use cases unless the latest analysis contains none."
+      ],
+      "onDone": "complete",
+      "onError": "abort"
+    }
+  }
+}
