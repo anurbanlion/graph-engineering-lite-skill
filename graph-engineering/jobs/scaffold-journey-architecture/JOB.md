@@ -2,7 +2,7 @@
 
 ## Objective
 
-The job MUST ensure that the required application and infrastructure structure exists for one or more journeys.
+The job MUST ensure that the required domain, application, and infrastructure structure exists for one or more journeys.
 
 The job MUST create missing directories and files.
 
@@ -44,7 +44,7 @@ The script MUST create missing parent directories and missing files.
 
 The script MUST NOT overwrite, modify, truncate, or format existing files.
 
-The script MUST NOT implement use cases, services, repositories, factories, mocks, server functions, or server actions.
+The script MUST NOT implement use cases, DTOs, services, repositories, factories, mocks, server functions, or server actions.
 
 ## Output
 
@@ -54,6 +54,9 @@ The job MUST ensure the following code structure exists for every journey:
 apis/
 └── [journey]/
     ├── index.ts
+    ├── domain/
+    │   └── contracts/
+    │       └── [journey].contract.ts
     ├── application/
     │   └── use-cases/
     │       └── [journey].use-case.ts
@@ -68,7 +71,7 @@ apis/
             └── [journey].service.ts
 ```
 
-These files are project code outputs. They are not stored as a managed run artifact.
+These files are Project Outputs. They are not stored as a Managed Output.
 
 Missing files MUST be created as empty files. Existing files MUST remain unchanged.
 
@@ -78,7 +81,7 @@ When nothing needs to be created, the script MUST still succeed.
 
 When execution fails, the script MUST print the reason to standard error and exit with a non-zero status code.
 
-# Prompt examples
+## Prompt examples
 
 ```txt
 Execute the scaffold-journey-architecture job for these journeys:
