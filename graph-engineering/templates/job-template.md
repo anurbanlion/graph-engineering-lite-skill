@@ -1,8 +1,12 @@
 # [Job Title]
 
+> Version: 1.0
+
 > Location: `graph-engineering/jobs/<job-name>/JOB.md`  
 
 > Note: The job directory name MUST be a kebab-case identifier (e.g., `analyze-journey-use-cases`). The document heading SHOULD be the human-readable title of that identifier.
+
+> Note: Lines starting with `>` are template instructions and guidelines. They MUST NOT be included in the final generated `JOB.md` file.
 
 ## Objective
 

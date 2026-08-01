@@ -29,6 +29,7 @@ job-graph-engineering/
 └── scripts/
     ├── resolve-output-path.mjs
     ├── dump-latest-output.mjs
+    ├── read-job-template.mjs
     ├── read-jobs.mjs
     ├── list-jobs.mjs
     ├── list-graphs.mjs
@@ -158,6 +159,15 @@ compile-storefront-journeys
 compile-storefront-use-cases
 create-job
 scaffold-journey-architecture
+```
+
+```bash
+# Read the canonical job template
+$ node scripts/read-job-template.mjs
+===== JOB TEMPLATE =====
+# [Job Title]
+...
+===== END JOB TEMPLATE =====
 ```
 
 ```bash
