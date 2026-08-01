@@ -1,19 +1,14 @@
 # Jobs
 
-## Purpose
-
 A job is a bounded unit of work that can be executed independently or composed inside a graph.
 
 A job defines:
 
-- what outcome it owns;
-- which inputs it accepts;
-- which files or project areas it may inspect or modify;
-- the ordered process it follows;
-- the output it produces; and
-- the conditions under which it succeeds or fails.
+- which inputs it accepts
+- the ordered process it follows
+- the output it produces
 
-A job MUST describe one responsibility. It MUST NOT duplicate the internal workflow of another job or depend on knowledge of unrelated jobs.
+A job SHOULD describe one responsibility. It MUST NOT duplicate the internal workflow of another job or depend on knowledge of unrelated jobs.
 
 ## Location
 
@@ -26,21 +21,6 @@ graph-engineering/jobs/<job-name>/JOB.md
 The directory name MUST be a kebab-case identifier. The document title SHOULD be the human-readable form of that identifier.
 
 A job MAY use a script when deterministic file discovery, transformation, output writing, or validation is required.
-
-## Job boundaries
-
-A job MUST state its scope explicitly.
-
-The scope SHOULD identify:
-
-- the unit of work;
-- required project files;
-- files or directories that may be inspected;
-- files or directories that may be modified;
-- protected areas that MUST remain unchanged unless the user explicitly expands the scope; and
-- work delegated to other jobs or intentionally excluded.
-
-A job MUST NOT assume that another job ran before it. Required inputs and required files MUST be validated directly.
 
 ## Sections
 
