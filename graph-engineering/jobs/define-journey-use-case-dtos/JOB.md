@@ -45,7 +45,7 @@ Use cases:
 3. The agent MUST identify the concrete operation, query, route, module, or resource that supplies each required field.
 4. The agent MUST inspect relevant existing frontend implementations to identify current backend calls, clients, request values, and consumed response shapes.
 5. Frontend evidence MAY reveal existing integration assumptions or reusable shapes, but the agent MUST validate them against the backend source before defining DTOs.
-6. The agent MUST NOT invent backend fields, relations, operations, or guarantees.
+6. The agent MUST NOT present unsupported fields, relations, operations, or guarantees as capabilities already provided by the backend.
 
 **2. Define DTO boundaries**
 
@@ -61,6 +61,7 @@ Use cases:
 2. The agent MUST preserve unrelated existing exports and contract definitions.
 3. Each added DTO SHOULD include concise source traceability identifying the backend capability from which it was derived and the use cases that require it.
 4. Source traceability MUST remain stable and MUST NOT depend on transient line numbers.
+5. Fields required by the use case but not currently returned by any backend source MUST be optional and MUST include a comment stating that no current backend capability provides them.
 
 Example:
 
@@ -72,15 +73,18 @@ Example:
 export interface CartDto {
   id: string;
   items: CartItemDto[];
+
+  /** No current backend capability returns this field. */
+  estimatedDeliveryDate?: string;
 }
 ```
 
 **4. Validate contracts**
 
-1. The agent MUST verify that every selected use case is supported by the DTOs added or reused.
-2. The agent MUST verify that each field is traceable to an existing backend source.
+1. The agent MUST verify that every selected use case is represented by the DTOs added or reused.
+2. The agent MUST verify that each field is either traceable to an existing backend source or explicitly marked as an optional field not currently provided by the backend.
 3. The agent MUST verify that the contract file remains syntactically valid and preserves existing exports.
-4. When a required backend capability does not exist, the agent MUST stop and report the affected use case and missing data source instead of fabricating a DTO.
+4. When a required backend capability does not exist, the agent MUST propose the missing DTO or fields, mark unsupported fields as optional, and document that no current backend source returns them.
 
 ## Output
 
@@ -101,10 +105,10 @@ On successful completion, the agent MUST report:
 - the DTOs added or reused;
 - the Medusa, Supabase, or backend sources used;
 - any relevant frontend calls or consumed response shapes found;
-- any backend limitations or unresolved fields;
+- any proposed optional fields not currently provided by the backend;
 - the modified contract file.
 
-On failure, the agent MUST report the affected use case, missing backend capability, invalid journey contract path, or unsupported source.
+On failure, the agent MUST report the affected use case, invalid journey contract path, or unsupported source inspection.
 
 ## Prompt examples
 
