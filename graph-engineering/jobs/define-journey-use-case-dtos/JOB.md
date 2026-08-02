@@ -15,7 +15,7 @@ The job MUST receive:
 - one journey identifier;
 - one or more use case identifiers.
 
-Each identifier MUST contain lowercase words separated by hyphens.
+Each journey identifier MUST contain lowercase words separated by hyphens. Use cases can be in camel case.
 
 The agent MUST discover the backend operations, resource shapes, DTO boundaries, and source locations required by the selected use cases. The agent MUST also inspect relevant existing frontend implementations to identify whether and how they already call those backend capabilities, including the clients, operations, request values, and response shapes currently consumed. Frontend evidence MUST inform the analysis but MUST NOT override the actual backend contract.
 
