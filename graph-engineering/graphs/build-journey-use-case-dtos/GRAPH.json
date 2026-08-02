@@ -10,7 +10,7 @@
     "analyze-journey-use-cases": {
       "instructions": [
         "Execute this job in Latest mode.",
-        "Use the journey domain identifier provided to the graph to locate the latest managed output."
+        "Use the journey domain identifier suffixed with -journey to locate the latest managed output (for example, account resolves to account-journey)."
       ],
       "onDone": "scaffold-journey-architecture",
       "onError": "abort"
