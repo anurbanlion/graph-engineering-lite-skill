@@ -103,52 +103,61 @@ graph-engineering-lite-skill/
 │   │   └── <graph-name>/
 │   │       └── GRAPH.json
 │   └── scripts/
-├── sync-folder.sh
-└── sync-folder.mjs
+├── .env
+└── bin/
+    ├── sync-folder.mjs
+    ├── sync-folder.sh
+    └── sync-folder.bat
 ```
 
 The scripts inside `graph-engineering` support discovery, reading, validation, output-path resolution, and logging. Normal users interact with the skill through natural-language requests to the agent.
 
 ## Folder synchronization pipeline
 
-The root-level synchronization pipeline copies the local `graph-engineering` folder into a configured Codex skills directory. It is intended for maintaining the skill in this repository and publishing the latest local version into another project without manually deleting and copying folders.
+The synchronization pipeline copies the local `graph-engineering` folder into a configured Codex skills directory. It is intended for maintaining the skill in this repository and publishing the latest local version into another project without manually deleting and copying folders.
 
 The pipeline consists of:
 
-- `sync-folder.sh`: configuration and orchestration wrapper.
-- `sync-folder.mjs`: validation, destination replacement, directory creation, and recursive copying.
+- `bin/sync-folder.mjs`: reads configuration, validates paths, replaces the destination, creates directories, and copies recursively.
+- `bin/sync-folder.sh`: macOS/Linux wrapper.
+- `bin/sync-folder.bat`: Windows wrapper.
 
 ### Configuration
 
-The paths are configured near the top of `sync-folder.sh`:
+Copy `.env.example` to `.env` in the repository root and configure the paths:
 
-```sh
-SOURCE_PATH="graph-engineering"
-DESTINATION_PATH="/home/user/projects/supaChikiArena/.codex/skills/graph-engineering"
+```env
+SYNC_SOURCE_PATH=graph-engineering
+SYNC_DESTINATION_PATH=C:\path\to\project\.codex\skills\graph-engineering
 ```
 
-`SOURCE_PATH` may be relative to the repository root or absolute. `DESTINATION_PATH` must be an absolute path identifying the exact folder that will be replaced by the source folder.
+`SYNC_SOURCE_PATH` may be relative to the repository root or absolute. `SYNC_DESTINATION_PATH` must be an absolute path identifying the exact folder that will be replaced by the source folder.
 
 All failures are printed to standard error and return a non-zero exit code.
 
 ### How to use the sync
 
-Ensure the wrapper is executable:
+1. Ensure the wrapper is executable:
 
 ```sh
-chmod +x sync-folder.sh
+chmod +x bin/sync-folder.sh
 ```
 
-Review `SOURCE_PATH` and `DESTINATION_PATH` in `sync-folder.sh`, then run:
+2. Review `.env` file for correct paths. 
+
+3. Run the wrapper for your platform:
 
 ```sh
-./sync-folder.sh
+./bin/sync-folder.sh
+```
+
+```bat
+bin\sync-folder.bat
 ```
 
 The destination folder is replaced completely on each successful run. Changes already present only in the destination folder are therefore deleted.
 
+# TODO
 
-TODO:
+- Create a rename job node
 
-create a rename job node
-rename analyze-journey-use-cases to compile-journey-use-cases

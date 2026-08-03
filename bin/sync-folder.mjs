@@ -1,13 +1,83 @@
 #!/usr/bin/env node
 
-import { access, cp, mkdir, rm, stat } from "node:fs/promises";
+import { access, cp, mkdir, readFile, rm, stat } from "node:fs/promises";
 import { constants } from "node:fs";
-import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const scriptDirectory = dirname(fileURLToPath(import.meta.url));
+const repositoryDirectory = resolve(scriptDirectory, "..");
+const environmentFile = join(repositoryDirectory, ".env");
 
 // Report a clear error and terminate with a non-zero exit code.
 function fail(message) {
   console.error(`sync-folder: ${message}`);
   process.exit(1);
+}
+
+function parseEnvironmentFile(content) {
+  const values = new Map();
+
+  for (const [index, rawLine] of content.split(/\r?\n/).entries()) {
+    const line = rawLine.trim();
+
+    if (!line || line.startsWith("#")) {
+      continue;
+    }
+
+    const separatorIndex = line.indexOf("=");
+
+    if (separatorIndex <= 0) {
+      fail(`invalid .env entry on line ${index + 1}`);
+    }
+
+    const key = line.slice(0, separatorIndex).trim();
+    let value = line.slice(separatorIndex + 1).trim();
+
+    if (!/^[A-Z][A-Z0-9_]*$/.test(key)) {
+      fail(`invalid .env key on line ${index + 1}: ${key}`);
+    }
+
+    if (
+      value.length >= 2 &&
+      ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'")))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    values.set(key, value);
+  }
+
+  return values;
+}
+
+async function readConfiguration() {
+  let content;
+
+  try {
+    content = await readFile(environmentFile, "utf8");
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      fail(`configuration file not found: ${environmentFile}. Copy .env.example to .env and configure it.`);
+    }
+
+    throw error;
+  }
+
+  const configuration = parseEnvironmentFile(content);
+  const sourcePathValue = configuration.get("SYNC_SOURCE_PATH");
+  const destinationPathValue = configuration.get("SYNC_DESTINATION_PATH");
+
+  if (!sourcePathValue) {
+    fail("SYNC_SOURCE_PATH MUST be set in .env");
+  }
+
+  if (!destinationPathValue) {
+    fail("SYNC_DESTINATION_PATH MUST be set in .env");
+  }
+
+  return { sourcePathValue, destinationPathValue };
 }
 
 // Require an existing directory and explain whether it is missing or invalid.
@@ -54,25 +124,20 @@ function isInside(parentPath, childPath) {
 }
 
 async function syncFolder() {
-  // Step 1: read the only two supported inputs: source and destination folders.
-  const [sourcePathArgument, destinationPathArgument, ...extraArguments] =
-    process.argv.slice(2);
-
-  if (!sourcePathArgument || !destinationPathArgument || extraArguments.length > 0) {
-    fail("usage: node sync-folder.mjs <source-path> <destination-path>");
+  if (process.argv.length > 2) {
+    fail("this script does not accept arguments; configure .env in the repository root");
   }
 
-  // Step 2: require explicit absolute paths from the wrapper and normalize them.
-  if (!isAbsolute(sourcePathArgument)) {
-    fail(`source path must be absolute: ${sourcePathArgument}`);
+  const { sourcePathValue, destinationPathValue } = await readConfiguration();
+  const sourcePath = isAbsolute(sourcePathValue)
+    ? resolve(sourcePathValue)
+    : resolve(repositoryDirectory, sourcePathValue);
+
+  if (!isAbsolute(destinationPathValue)) {
+    fail(`SYNC_DESTINATION_PATH MUST be absolute: ${destinationPathValue}`);
   }
 
-  if (!isAbsolute(destinationPathArgument)) {
-    fail(`destination path must be absolute: ${destinationPathArgument}`);
-  }
-
-  const sourcePath = resolve(sourcePathArgument);
-  const destinationPath = resolve(destinationPathArgument);
+  const destinationPath = resolve(destinationPathValue);
 
   // Step 3: validate the source before modifying the destination.
   await requireDirectory(sourcePath, "source folder");
