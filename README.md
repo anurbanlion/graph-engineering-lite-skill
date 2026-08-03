@@ -28,11 +28,11 @@ Example requests:
 
 ### Run
 
-A **run** is one execution of a job within a project. When a job produces an artifact, the skill stores it under the project's `.job-graph-engineering/runs` directory. Runs are grouped by domain and job name so outputs remain organized and traceable.
+A **run** is one execution of a job within a project. When a job produces an artifact, the skill stores it under the project's `.graph-engineering/runs` directory. Runs are grouped by domain and job name so outputs remain organized and traceable.
 
 ```text
 <project-folder>/
-└── .job-graph-engineering/
+└── .graph-engineering/
     ├── logs/
     │   └── executions.log
     └── runs/
@@ -41,7 +41,7 @@ A **run** is one execution of a job within a project. When a job produces an art
                 └── <output-file>
 ```
 
-The **project folder** is the user's working project. `.job-graph-engineering` is the skill-managed directory created inside that project for execution data.
+The **project folder** is the user's working project. `.graph-engineering` is the skill-managed directory created inside that project for execution data.
 
 ## How it works
 
@@ -61,7 +61,7 @@ The skill does not create or execute jobs or graphs without an explicit request.
 - **Automatic discovery:** selects from the jobs or graphs available in the skill.
 - **Graph validation:** checks workflow references before execution begins.
 - **Managed outputs:** stores generated artifacts in deterministic project locations.
-- **Execution logs:** records activity under `.job-graph-engineering/logs`.
+- **Execution logs:** records activity under `.graph-engineering/logs`.
 - **Safe execution:** requires explicit user intent and stops invalid graphs before downstream work runs.
 - **Resumable interaction:** a graph may pause for missing user input and continue from the same job once that input is provided.
 
