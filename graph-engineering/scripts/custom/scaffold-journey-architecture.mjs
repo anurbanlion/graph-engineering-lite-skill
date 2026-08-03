@@ -46,7 +46,7 @@ function parseJourneys(argumentsList) {
 }
 
 function getJourneyFiles(journey) {
-  const journeyRoot = join(paths.projectDirectory, "apis", journey);
+  const journeyRoot = join(paths.projectDirectory, "apps", "storefront", "apis", journey);
 
   return [
     join(journeyRoot, "index.ts"),

@@ -51,7 +51,7 @@ The script MUST NOT implement use cases, DTOs, services, repositories, factories
 The job MUST ensure the following code structure exists for every journey:
 
 ```txt
-apis/
+apps/storefront/apis/
 └── [journey]/
     ├── index.ts
     ├── domain/

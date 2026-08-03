@@ -24,8 +24,9 @@
     },
     "define-journey-use-case-dtos": {
       "instructions": [
-        "Use the journey domain identifier provided to the graph.",
-        "Use every use case identified in the latest analyze-journey-use-cases Markdown currently available in context."
+        "Execute this mode twice, first once in latest mode and second once in default mode, this is in order to iterate and improve existing data flow graphs.",
+        "Use the journey domain identifier suffixed with -journey to locate the latest managed output or write the new managed output (for example, account resolves to account-journey).",
+        "If no use case was offered as an input you must halt execution and ask for the use case that must be present on the latest analyze-journey-use-cases Markdown currently available in context."
       ],
       "onDone": "complete",
       "onError": "abort"

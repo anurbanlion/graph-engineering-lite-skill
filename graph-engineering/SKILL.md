@@ -84,6 +84,8 @@ A job MAY produce a Project Output, a Managed Output, or both:
 7. If executing in **Latest mode**, the agent MUST **NOT** execute the `JOB.md` process, create project files, or run job scripts (this affects execution regardless of whether the job produces a managed output, project output, or both).
 8. If executing in **Latest mode** and the job produces a managed output, the agent MUST dump the latest output into context by executing `node scripts/dump-latest-output.mjs <domain> <job-name>`. If no output exists, report failure and halt.
 
+> Note: A managed-output domain name is a required input whenever `resolve-output-path.mjs` requires it. The agent MUST ask for it when absent and MUST NOT infer it.
+
 **Job execution**
 
 9. If the selected job produces project outputs, the agent MUST execute the job process according to its `JOB.md` instructions to create or modify repository files.
