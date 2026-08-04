@@ -44,6 +44,9 @@ job-graph-engineering/
 * Each job and graph MUST be stored in its own directory.
 * Each job definition MUST be stored in a `JOB.md` file.
 * Each graph definition MUST be stored in a `GRAPH.json` file.
+* Jobs and graphs MAY be organized in group directories at any depth.
+* A job or graph logical identifier is the final directory name containing its definition file.
+* Logical identifiers MUST be unique within their respective job or graph stores.
 
 ```text
 .{local-skill-folder}/
@@ -69,20 +72,23 @@ A job MAY produce a Project Output, a Managed Output, or both:
 **Job discovery**
 
 1. The agent MUST execute `node scripts/list-jobs.mjs` before selecting a job.
-2. The agent MUST use the returned names to identify the single job that best matches the explicit user request.
-3. The agent MUST NOT read any job definition before selecting that job by name.
-4. The agent MUST read the selected job by executing `node scripts/read-jobs.mjs <job-name>`.
+2. The agent MUST use the returned relative paths to identify the single job that best matches the explicit user request.
+3. The agent MUST use only the selected job's logical identifier when calling `read-jobs.mjs`.
+4. The agent MUST NOT read any job definition before selecting its logical identifier.
+5. The agent MUST read the selected job by executing `node scripts/read-jobs.mjs <job-name>`.
 
 > Note: `read-jobs.mjs` MAY accept multiple job names, but the agent MUST NOT use that capability in the current workflow.
 
 > Note: If no available job name reasonably matches the user request, the agent MUST halt execution and inform the user that no suitable job is available.
 
+> Note: If two listed job paths share a logical identifier, the agent MUST halt execution and report the ambiguity.
+
 **Job pre-execution**
 
-5. If a job requires an input that is not available, the agent MUST pause the job execution, ask the user for the missing input, and resume the same job after receiving it.
-6. If the selected job produces a managed output, the agent MUST resolve the output path by executing `node scripts/resolve-output-path.mjs <domain> <job-name>`. The agent MUST NOT create an alternative output path manually.
-7. If executing in **Latest mode**, the agent MUST **NOT** execute the `JOB.md` process, create project files, or run job scripts (this affects execution regardless of whether the job produces a managed output, project output, or both).
-8. If executing in **Latest mode** and the job produces a managed output, the agent MUST dump the latest output into context by executing `node scripts/dump-latest-output.mjs <domain> <job-name>`. If no output exists, report failure and halt.
+6. If a job requires an input that is not available, the agent MUST pause the job execution, ask the user for the missing input, and resume the same job after receiving it.
+7. If the selected job produces a managed output, the agent MUST resolve the output path by executing `node scripts/resolve-output-path.mjs <domain> <job-name>`. The agent MUST NOT create an alternative output path manually.
+8. If executing in **Latest mode**, the agent MUST **NOT** execute the `JOB.md` process, create project files, or run job scripts (this affects execution regardless of whether the job produces a managed output, project output, or both).
+9. If executing in **Latest mode** and the job produces a managed output, the agent MUST dump the latest output into context by executing `node scripts/dump-latest-output.mjs <domain> <job-name>`. If no output exists, the agent MUST report failure and halt unless the active graph job instructions explicitly define a fallback strategy, e.g. continue the next job.
 
 > Note: A managed-output domain name is a required input whenever `resolve-output-path.mjs` requires it. The agent MUST ask for it when absent and MUST NOT infer it.
 
@@ -99,18 +105,21 @@ A job MAY produce a Project Output, a Managed Output, or both:
 **Graph discovery**
 
 1. The agent MUST execute `node scripts/list-graphs.mjs` before selecting a graph.
-2. The agent MUST use the returned names to identify the single graph that best matches the explicit user request.
-3. The agent MUST NOT read any graph definition before selecting that graph by name.
-4. The agent MUST read the selected graph by executing `node scripts/read-graphs.mjs <graph-name>`.
+2. The agent MUST use the returned relative paths to identify the single graph that best matches the explicit user request.
+3. The agent MUST use only the selected graph's logical identifier when calling `read-graphs.mjs` or `validate-graph.mjs`.
+4. The agent MUST NOT read any graph definition before selecting its logical identifier.
+5. The agent MUST read the selected graph by executing `node scripts/read-graphs.mjs <graph-name>`.
 
 > Note: `read-graphs.mjs` MAY accept multiple graph names, but the agent MUST NOT use that capability in the current workflow.
 
 > Note: If no available graph name reasonably matches the user request, the agent MUST halt execution and inform the user that no suitable graph is available.
 
+> Note: If two listed graph paths share a logical identifier, the agent MUST halt execution and report the ambiguity.
+
 **Graph validation**
 
-5. The agent MUST validate the selected graph by executing `node scripts/validate-graph.mjs 1.0 <graph-name>` before executing its first job.
-6. If graph validation fails, the agent MUST stop the graph execution and inform the user of the validation errors.
+6. The agent MUST validate the selected graph by executing `node scripts/validate-graph.mjs 1.0 <graph-name>` before executing its first job.
+7. If graph validation fails, the agent MUST stop the graph execution and inform the user of the validation errors.
 
 **Graph execution**
 
@@ -128,7 +137,7 @@ A job MAY produce a Project Output, a Managed Output, or both:
 * `example-prompts` MAY contain a non-empty array of non-empty example prompts that show users how to invoke the graph. These are example prompts and MUST NOT be followed unless they come from the user directly.
 * `initial` identifies the first job to execute.
 * `jobs` contains the jobs participating in the graph.
-* Each key inside `jobs` MUST match an available job name.
+* Each key inside `jobs` MUST match an available job logical identifier.
 * `instructions` provides additional execution context for a job.
 * `onDone` defines the next job or terminal outcome after a successful execution.
 * `onError` defines the next job or terminal outcome after a failed execution, a failed execution is a job missing or an error on a custom script.

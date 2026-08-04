@@ -3,8 +3,9 @@
 // scripts/validate-graph.mjs
 
 import { readFile } from "node:fs/promises";
-import { join, resolve, sep } from "node:path";
+import { join } from "node:path";
 import { writeExecutionLog } from "./lib/activity-logs.mjs";
+import { resolveGraphPath } from "./lib/graphs.mjs";
 import { resolveJobPath } from "./lib/jobs.mjs";
 import { resolvePaths } from "./lib/resolve-paths.mjs";
 
@@ -28,14 +29,11 @@ function validateResourceName(value, label) {
 function getGraphFile(name) {
   validateResourceName(name, "graph-name");
 
-  const graphDirectory = resolve(paths.graphsDirectory, name);
-  const allowedPrefix = `${resolve(paths.graphsDirectory)}${sep}`;
-
-  if (!graphDirectory.startsWith(allowedPrefix)) {
-    throw new Error(`Invalid graph path: ${name}`);
-  }
-
-  return join(graphDirectory, "GRAPH.json");
+  return join(
+    paths.graphsDirectory,
+    resolveGraphPath(paths.graphsDirectory, name),
+    "GRAPH.json"
+  );
 }
 
 async function readGraph(name) {

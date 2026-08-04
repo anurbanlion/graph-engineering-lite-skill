@@ -3,35 +3,20 @@
 // scripts/read-graphs.mjs
 
 import { readFile } from "node:fs/promises";
-import { join, resolve, sep } from "node:path";
+import { join } from "node:path";
 import { writeExecutionLog } from "./lib/activity-logs.mjs";
+import { resolveGraphPath } from "./lib/graphs.mjs";
 import { resolvePaths } from "./lib/resolve-paths.mjs";
 
 const SCRIPT_NAME = "read-graphs";
 const paths = resolvePaths(import.meta.url);
-const graphsDirectory = join(paths.skillDirectory, "graphs");
-const graphNames = process.argv.slice(2);
 
 function getGraphFile(graphName) {
-  if (
-    !graphName ||
-    graphName === "." ||
-    graphName === ".." ||
-    graphName.includes("/") ||
-    graphName.includes("\\")
-  ) {
-    throw new Error(`Invalid graph name: ${graphName}`);
-  }
-
-  const graphsRoot = resolve(graphsDirectory);
-  const graphDirectory = resolve(graphsRoot, graphName);
-  const allowedPrefix = `${graphsRoot}${sep}`;
-
-  if (!graphDirectory.startsWith(allowedPrefix)) {
-    throw new Error(`Invalid graph path: ${graphName}`);
-  }
-
-  return join(graphDirectory, "GRAPH.json");
+  return join(
+    paths.graphsDirectory,
+    resolveGraphPath(paths.graphsDirectory, graphName),
+    "GRAPH.json"
+  );
 }
 
 async function readGraph(graphName) {
@@ -46,37 +31,48 @@ async function readGraph(graphName) {
   }
 }
 
-await writeExecutionLog({
-  scriptName: SCRIPT_NAME,
-  logsDirectory: paths.logsDirectory,
-  logFile: paths.logFile,
-  metadata: {
-    graphs: graphNames,
-  },
-});
+async function main() {
+  const graphNames = process.argv.slice(2);
 
-if (graphNames.length === 0) {
-  console.error(
-    "Usage: node scripts/read-graphs.mjs <graph-name> [additional-graph-name...]"
-  );
-  process.exit(1);
-}
+  await writeExecutionLog({
+    scriptName: SCRIPT_NAME,
+    logsDirectory: paths.logsDirectory,
+    logFile: paths.logFile,
+    metadata: {
+      graphs: graphNames,
+    },
+  });
 
-let hasErrors = false;
+  if (graphNames.length === 0) {
+    console.error(
+      "Usage: node scripts/read-graphs.mjs <graph-name> [additional-graph-name...]"
+    );
+    process.exit(1);
+  }
 
-for (const graphName of graphNames) {
-  try {
-    const definition = await readGraph(graphName);
+  let hasErrors = false;
 
-    console.log(`===== GRAPH: ${graphName} =====`);
-    console.log(definition.trim());
-    console.log(`===== END GRAPH: ${graphName} =====`);
-  } catch (error) {
-    hasErrors = true;
-    console.error(error.message);
+  for (const graphName of graphNames) {
+    try {
+      const definition = await readGraph(graphName);
+
+      console.log(`===== GRAPH: ${graphName} =====`);
+      console.log(definition.trim());
+      console.log(`===== END GRAPH: ${graphName} =====`);
+    } catch (error) {
+      hasErrors = true;
+      console.error(error.message);
+    }
+  }
+
+  if (hasErrors) {
+    process.exit(1);
   }
 }
 
-if (hasErrors) {
+try {
+  await main();
+} catch (error) {
+  console.error("Failed to read graphs:", error);
   process.exit(1);
 }
