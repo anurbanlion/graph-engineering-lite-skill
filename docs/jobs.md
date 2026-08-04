@@ -45,11 +45,15 @@ The output is the result owned by the job. Jobs commonly produce project outputs
 - Project output: A project output creates or modifies repository files, such as source code, configuration, tests, or generated project structure.
 - Managed output: A managed output is a persisted artifact produced by a run, which takes the form of a Markdown document.
 
-Because a graph MAY require the artifact content in its active context, a job with a managed output SHOULD support two additional execution modes.
+### Execution modes
+
+Because a graph MAY require the artifact content in its active context or a job must build its output from a previous iteration, a job with a managed output SHOULD support additional execution modes:
 
 - Managed output - Echo mode: Executes the job normally, persists the new Markdown artifact, but also places the complete generated content in the conversation context. This allows the next job to consume the result without locating and opening the artifact. The contextual content MUST represent the persisted artifact and SHOULD NOT be replaced by a summary.
 
 - Managed output - Latest mode: Does not execute the job. It locates the latest successful managed output for the same job and relevant domain, then places its complete Markdown content in the graph or conversation context. Latest mode MUST NOT create a new managed output. If no matching output exists, the operation MUST fail clearly.
+
+- Managed output - Iterative mode: Especial execution mode where it runs the job twice, once in latest mode and once y defaul mode, or echo if the user indicates so.
 
 These execution modes complement the default managed output mode, which MUST only persist the output artifact and present a file link to the user. A graph MAY express these execution modes as job instructions.
 
