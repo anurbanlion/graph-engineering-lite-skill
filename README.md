@@ -159,5 +159,6 @@ Each destination folder is replaced completely on each successful run. Changes a
 
 # TODO
 
+- Add support for job groups
+- Add support for graph groups
 - Create a rename job node
-
