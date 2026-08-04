@@ -77,7 +77,32 @@ async function readConfiguration() {
     fail("SYNC_DESTINATION_PATH MUST be set in .env");
   }
 
-  return { sourcePathValue, destinationPathValue };
+  return { sourcePathValue, destinationPathValues: parseDestinationPaths(destinationPathValue) };
+}
+
+// Accept a single destination for compatibility, or a JSON array for fan-out syncs.
+function parseDestinationPaths(value) {
+  if (!value.startsWith("[")) {
+    return [value];
+  }
+
+  let destinations;
+
+  try {
+    destinations = JSON.parse(value);
+  } catch {
+    fail("SYNC_DESTINATION_PATH MUST be an absolute path or a JSON array of absolute paths");
+  }
+
+  if (
+    !Array.isArray(destinations) ||
+    destinations.length === 0 ||
+    destinations.some((destination) => typeof destination !== "string" || !destination.trim())
+  ) {
+    fail("SYNC_DESTINATION_PATH JSON array MUST contain one or more non-empty paths");
+  }
+
+  return destinations.map((destination) => destination.trim());
 }
 
 // Require an existing directory and explain whether it is missing or invalid.
@@ -128,54 +153,75 @@ async function syncFolder() {
     fail("this script does not accept arguments; configure .env in the repository root");
   }
 
-  const { sourcePathValue, destinationPathValue } = await readConfiguration();
+  const { sourcePathValue, destinationPathValues } = await readConfiguration();
   const sourcePath = isAbsolute(sourcePathValue)
     ? resolve(sourcePathValue)
     : resolve(repositoryDirectory, sourcePathValue);
 
-  if (!isAbsolute(destinationPathValue)) {
-    fail(`SYNC_DESTINATION_PATH MUST be absolute: ${destinationPathValue}`);
-  }
+  const destinationPaths = destinationPathValues.map((destinationPathValue) => {
+    if (!isAbsolute(destinationPathValue)) {
+      fail(`SYNC_DESTINATION_PATH MUST be absolute: ${destinationPathValue}`);
+    }
 
-  const destinationPath = resolve(destinationPathValue);
+    return resolve(destinationPathValue);
+  });
 
   // Step 3: validate the source before modifying the destination.
   await requireDirectory(sourcePath, "source folder");
 
   // Prevent destructive configurations that could remove the source itself.
-  if (sourcePath === destinationPath) {
-    fail("source and destination resolve to the same folder");
+  for (const destinationPath of destinationPaths) {
+    if (sourcePath === destinationPath) {
+      fail("source and destination resolve to the same folder");
+    }
+
+    if (isInside(destinationPath, sourcePath)) {
+      fail("source folder is inside the destination folder; deleting the destination would remove the source");
+    }
+
+    if (isInside(sourcePath, destinationPath)) {
+      fail("destination folder must not be inside the source folder");
+    }
   }
 
-  if (isInside(destinationPath, sourcePath)) {
-    fail("source folder is inside the destination folder; deleting the destination would remove the source");
+  for (let index = 0; index < destinationPaths.length; index += 1) {
+    for (let otherIndex = index + 1; otherIndex < destinationPaths.length; otherIndex += 1) {
+      const destinationPath = destinationPaths[index];
+      const otherDestinationPath = destinationPaths[otherIndex];
+
+      if (
+        destinationPath === otherDestinationPath ||
+        isInside(destinationPath, otherDestinationPath) ||
+        isInside(otherDestinationPath, destinationPath)
+      ) {
+        fail("destination paths MUST be distinct and MUST NOT contain one another");
+      }
+    }
   }
 
-  if (isInside(sourcePath, destinationPath)) {
-    fail("destination folder must not be inside the source folder");
+  for (const destinationPath of destinationPaths) {
+    // Remove each destination only after every configured path has been validated.
+    if (await pathExists(destinationPath)) {
+      await requireDirectory(destinationPath, "destination folder");
+      await rm(destinationPath, { recursive: true, force: false });
+    }
+
+    await mkdir(dirname(destinationPath), { recursive: true });
+
+    await cp(sourcePath, destinationPath, {
+      recursive: true,
+      errorOnExist: false,
+      force: true,
+      preserveTimestamps: true,
+    });
   }
-
-  // Step 4: remove the destination only when it already exists.
-  if (await pathExists(destinationPath)) {
-    await requireDirectory(destinationPath, "destination folder");
-    await rm(destinationPath, { recursive: true, force: false });
-  }
-
-  // Step 5: create any missing parent directories for the destination.
-  await mkdir(dirname(destinationPath), { recursive: true });
-
-  // Step 6: copy the complete source folder to the destination path.
-  await cp(sourcePath, destinationPath, {
-    recursive: true,
-    errorOnExist: false,
-    force: true,
-    preserveTimestamps: true,
-  });
 
   // Step 7: report the completed synchronization and resolved folder paths.
   console.log("Folder synchronized successfully.");
   console.log(`Source: ${sourcePath}`);
-  console.log(`Destination: ${destinationPath}`);
+  for (const destinationPath of destinationPaths) {
+    console.log(`Destination: ${destinationPath}`);
+  }
 }
 
 try {

@@ -118,7 +118,7 @@ The synchronization pipeline copies the local `graph-engineering` folder into a 
 
 The pipeline consists of:
 
-- `bin/sync-folder.mjs`: reads configuration, validates paths, replaces the destination, creates directories, and copies recursively.
+- `bin/sync-folder.mjs`: reads configuration, validates paths, replaces each destination, creates directories, and copies recursively.
 - `bin/sync-folder.sh`: macOS/Linux wrapper.
 - `bin/sync-folder.bat`: Windows wrapper.
 
@@ -128,10 +128,10 @@ Copy `.env.example` to `.env` in the repository root and configure the paths:
 
 ```env
 SYNC_SOURCE_PATH=graph-engineering
-SYNC_DESTINATION_PATH=C:\path\to\project\.codex\skills\graph-engineering
+SYNC_DESTINATION_PATH=["C:\\path\\to\\project-a\\.codex\\skills\\graph-engineering","C:\\path\\to\\project-b\\.codex\\skills\\graph-engineering"]
 ```
 
-`SYNC_SOURCE_PATH` may be relative to the repository root or absolute. `SYNC_DESTINATION_PATH` must be an absolute path identifying the exact folder that will be replaced by the source folder.
+`SYNC_SOURCE_PATH` may be relative to the repository root or absolute. `SYNC_DESTINATION_PATH` accepts either one absolute path or a JSON array of absolute paths. Each path identifies the exact folder that will be replaced by the source folder; destination paths must be distinct and must not contain one another.
 
 All failures are printed to standard error and return a non-zero exit code.
 
@@ -155,7 +155,7 @@ chmod +x bin/sync-folder.sh
 bin\sync-folder.bat
 ```
 
-The destination folder is replaced completely on each successful run. Changes already present only in the destination folder are therefore deleted.
+Each destination folder is replaced completely on each successful run. Changes already present only in a destination folder are therefore deleted.
 
 # TODO
 
