@@ -2,10 +2,10 @@
 
 // scripts/validate-graph.mjs
 
-import { access, readFile } from "node:fs/promises";
-import { constants } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
 import { writeExecutionLog } from "./lib/activity-logs.mjs";
+import { resolveJobPath } from "./lib/jobs.mjs";
 import { resolvePaths } from "./lib/resolve-paths.mjs";
 
 const SCRIPT_NAME = "validate-graph";
@@ -36,15 +36,6 @@ function getGraphFile(name) {
   }
 
   return join(graphDirectory, "GRAPH.json");
-}
-
-async function fileExists(filePath) {
-  try {
-    await access(filePath, constants.R_OK);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 async function readGraph(name) {
@@ -250,16 +241,10 @@ async function validateJobStore(graph) {
   }
 
   for (const jobName of Object.keys(graph.jobs)) {
-    const jobFile = join(
-      paths.jobsDirectory,
-      jobName,
-      "JOB.md"
-    );
-
-    if (!(await fileExists(jobFile))) {
-      errors.push(
-        `Job "${jobName}" does not exist at jobs/${jobName}/JOB.md.`
-      );
+    try {
+      resolveJobPath(paths.jobsDirectory, jobName);
+    } catch (error) {
+      errors.push(error.message);
     }
   }
 

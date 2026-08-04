@@ -2,9 +2,8 @@
 
 // Lists job directory names so callers can choose a valid job before reading it.
 
-import { existsSync, readdirSync } from "node:fs";
-import { join, relative } from "node:path";
 import { writeExecutionLog } from "./lib/activity-logs.mjs";
+import { findJobPaths } from "./lib/jobs.mjs";
 import { resolvePaths } from "./lib/resolve-paths.mjs";
 
 // Identifies this invocation in the skill's execution log.
@@ -14,22 +13,6 @@ const SCRIPT_NAME = "list-jobs";
 // `resolvePaths` contains every path this script needs, e.g. `paths.jobsDirectory`
 const paths = resolvePaths(import.meta.url);
 
-function findJobs(directory) {
-  // A directory with JOB.md is a job; otherwise, search its child directories.
-  return readdirSync(directory, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => {
-      const jobDirectory = join(directory, entry.name);
-
-      if (existsSync(join(jobDirectory, "JOB.md"))) {
-        return relative(paths.jobsDirectory, jobDirectory);
-      }
-
-      return findJobs(jobDirectory);
-    })
-    .flat();
-}
-
 async function main() {
   // Record the invocation, then print every job path relative to jobs/.
   await writeExecutionLog({
@@ -38,7 +21,7 @@ async function main() {
     logFile: paths.logFile,
   });
 
-  const jobs = findJobs(paths.jobsDirectory).sort();
+  const jobs = findJobPaths(paths.jobsDirectory).sort();
 
   if (jobs.length === 0) {
     // An empty jobs directory is a valid state, not an execution failure.
