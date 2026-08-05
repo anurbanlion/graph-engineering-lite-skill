@@ -1,0 +1,44 @@
+{
+  "name": "implement-journey-use-cases",
+  "version": "1.0",
+  "example-prompts": [
+    "Execute the implement-journey-use-cases graph for journey account and implement getCurrentUser.",
+    "Run the implement-journey-use-cases graph for journey saved and implement the requested saved use cases."
+  ],
+  "initial": "analyze-journey-use-cases",
+  "jobs": {
+    "analyze-journey-use-cases": {
+      "instructions": [
+        "Execute this job in Latest mode.",
+        "Use the journey domain identifier suffixed with -journey to locate the latest managed output; for example, account resolves to account-journey."
+      ],
+      "onDone": "scaffold-journey-architecture",
+      "onError": "abort"
+    },
+    "scaffold-journey-architecture": {
+      "instructions": [
+        "Execute this job in Default mode.",
+        "Use the journey domain identifier provided to the graph."
+      ],
+      "onDone": "define-journey-use-case-dtos",
+      "onError": "abort"
+    },
+    "define-journey-use-case-dtos": {
+      "instructions": [
+        "Execute this job in Latest mode only; use its existing DTO data-flow artifact as implementation input and do not regenerate it.",
+        "Use the journey domain identifier suffixed with -journey to locate the latest managed output; for example, account resolves to account-journey."
+      ],
+      "onDone": "implement-services",
+      "onError": "abort"
+    },
+    "implement-services": {
+      "instructions": [
+        "If no requested use case is available as graph input, halt and ask the user which use case to implement, show the expected options from analyze-journey-use-cases",
+        "Execute this job in Default mode.",
+        "Do not migrate application callers unless the user explicitly requests integration."
+      ],
+      "onDone": "complete",
+      "onError": "abort"
+    }
+  }
+}
