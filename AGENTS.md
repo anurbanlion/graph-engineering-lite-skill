@@ -1,4 +1,4 @@
-- You MUST treat `graph-engineering` as a skill, that is, you must load its SKILL.md file in every session.
+- You MUST treat `graph-engineering` folder as a skill, that is, you must load its SKILL.md file in every session.
 
 # Instructions style
 
