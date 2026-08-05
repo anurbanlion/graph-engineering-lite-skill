@@ -1,0 +1,29 @@
+{
+  "name": "follow-up-flow",
+  "version": "1.0",
+  "example-prompts": [
+    "Run the follow-up-flow graph for the metodo-de-testeo domain with these meeting events."
+  ],
+  "initial": "compile-organization-context",
+  "jobs": {
+    "compile-organization-context": {
+      "instructions": [
+        "The user MUST provide one kebab-case domain before the graph begins.",
+        "Execute this job in Latest mode using global-info domain, only for this job.",
+        "If no organization context output exists, the graph MUST continue to follow-up-activity without a compiled organization context."
+      ],
+      "onDone": "follow-up-activity",
+      "onError": "follow-up-activity"
+    },
+    "follow-up-activity": {
+      "instructions": [
+        "The user MUST provide one or more events or updates for the selected domain before this job executes.",
+        "Execute this job first in Latest mode using the selected domain.",
+        "If no latest follow-up output exists, the job MUST continue in Default mode without prior follow-up content.",
+        "After the Latest attempt, execute this job in Default mode using the user-provided events and any available latest follow-up or organization context."
+      ],
+      "onDone": "complete",
+      "onError": "abort"
+    }
+  }
+}
