@@ -58,6 +58,8 @@ apps/storefront/apis/
     │   └── contracts/
     │       └── [journey].contract.ts
     ├── application/
+    │   ├── actions/
+    │   │   └── [journey].action.ts
     │   └── use-cases/
     │       └── [journey].use-case.ts
     └── infrastructure/

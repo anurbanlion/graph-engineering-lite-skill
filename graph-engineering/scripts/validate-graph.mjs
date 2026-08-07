@@ -10,7 +10,7 @@ import { resolveJobPath } from "./lib/jobs.mjs";
 import { resolvePaths } from "./lib/resolve-paths.mjs";
 
 const SCRIPT_NAME = "validate-graph";
-const SUPPORTED_VERSION = "1.0";
+const SUPPORTED_VERSIONS = new Set(["1.0", "2.0"]);
 const TERMINAL_OUTCOMES = new Set(["complete", "abort"]);
 
 const paths = resolvePaths(import.meta.url);
@@ -95,9 +95,9 @@ function validateStructure(graph, version) {
     errors.push('"jobs" MUST contain at least one job.');
   }
 
-  if (version !== SUPPORTED_VERSION) {
+  if (!SUPPORTED_VERSIONS.has(version)) {
     errors.push(
-      `Unsupported requested version "${version}". Supported version: "${SUPPORTED_VERSION}".`
+      `Unsupported requested version "${version}". Supported versions: ${[...SUPPORTED_VERSIONS].map(v => `"${v}"`).join(", ")}.`
     );
   }
 
@@ -129,7 +129,50 @@ function validateStructure(graph, version) {
       continue;
     }
 
-    if (
+    if (Array.isArray(jobDefinition.onDone)) {
+      if (jobDefinition.onDone.length === 0) {
+        errors.push(`Job "${jobName}" conditional "onDone" MUST contain at least one transition.`);
+      }
+
+      for (const [index, transition] of jobDefinition.onDone.entries()) {
+        if (
+          !transition ||
+          typeof transition !== "object" ||
+          Array.isArray(transition)
+        ) {
+          errors.push(
+            `Job "${jobName}" conditional "onDone[${index}]" MUST be an object.`
+          );
+          continue;
+        }
+
+        if (
+          typeof transition.target !== "string" ||
+          transition.target.length === 0
+        ) {
+          errors.push(
+            `Job "${jobName}" conditional "onDone[${index}]" MUST define a non-empty "target".`
+          );
+        }
+
+        if (
+          transition.guard !== undefined &&
+          (typeof transition.guard !== "string" || transition.guard.length === 0)
+        ) {
+          errors.push(
+            `Job "${jobName}" conditional "onDone[${index}].guard" MUST be a non-empty string when present.`
+          );
+        }
+      }
+
+      const hasDefault = jobDefinition.onDone.some((t) => !t.guard);
+
+      if (!hasDefault) {
+        errors.push(
+          `Job "${jobName}" conditional "onDone" MUST include at least one transition without a guard (default fallback).`
+        );
+      }
+    } else if (
       typeof jobDefinition.onDone !== "string" ||
       jobDefinition.onDone.length === 0
     ) {
@@ -203,19 +246,25 @@ function validateReferences(graph) {
     }
 
     for (const transitionName of ["onDone", "onError"]) {
-      const target = jobDefinition[transitionName];
+      const value = jobDefinition[transitionName];
 
-      if (typeof target !== "string" || target.length === 0) {
-        continue;
-      }
+      const targets = Array.isArray(value)
+        ? value
+            .filter((t) => t && typeof t === "object" && typeof t.target === "string")
+            .map((t) => t.target)
+        : typeof value === "string" && value.length > 0
+          ? [value]
+          : [];
 
-      const referencesGraphJob = graphJobNames.has(target);
-      const referencesTerminal = TERMINAL_OUTCOMES.has(target);
+      for (const target of targets) {
+        const referencesGraphJob = graphJobNames.has(target);
+        const referencesTerminal = TERMINAL_OUTCOMES.has(target);
 
-      if (!referencesGraphJob && !referencesTerminal) {
-        errors.push(
-          `Job "${jobName}" has a dangling "${transitionName}" reference to "${target}".`
-        );
+        if (!referencesGraphJob && !referencesTerminal) {
+          errors.push(
+            `Job "${jobName}" has a dangling "${transitionName}" reference to "${target}".`
+          );
+        }
       }
     }
   }

@@ -37,6 +37,14 @@
         "Execute this job in Default mode.",
         "Do not migrate application callers unless the user explicitly requests integration."
       ],
+      "onDone": "implement-repository-and-use-cases",
+      "onError": "abort"
+    },
+    "implement-repository-and-use-cases": {
+      "instructions": [
+        "Execute this job in Default mode.",
+        "Implement real repository, mock repository, factory with environment variable check, and use case forwarding for the specified use cases."
+      ],
       "onDone": "complete",
       "onError": "abort"
     }

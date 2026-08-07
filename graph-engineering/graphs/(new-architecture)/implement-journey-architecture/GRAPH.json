@@ -1,0 +1,79 @@
+{
+  "name": "implement-journey-architecture",
+  "version": "2.0",
+  "example-prompts": [
+    "Execute the implement-journey-architecture graph for the account journey.",
+    "Run the implement-journey-architecture graph for the saved journey and implement getCurrentUser."
+  ],
+  "initial": "design-journey-use-cases",
+  "jobs": {
+    "design-journey-use-cases": {
+      "instructions": [
+        "Execute this job in Echo mode.",
+        "Use the journey domain identifier suffixed with -journey as the run/<domain> name; for example, account resolves to account-journey."
+      ],
+      "onDone": "audit-journey-use-cases",
+      "onError": "abort"
+    },
+    "audit-journey-use-cases": {
+      "instructions": [
+        "Execute this job in Echo mode.",
+        "Use the journey domain identifier suffixed with -journey as the run/<domain> name; for example, account resolves to account-journey.",
+        "The design artifact is already in context from the previous Echo execution.",
+        "If this is a subsequent loop iteration, the agent MAY skip the Five-Layer Discovery if the audit data is already sufficient and only the use case decomposition and models need reorganization.",
+        "At the end of this job you must halt execution and ask the user for approval or feedback."
+      ],
+      "onDone": [
+        {
+          "guard": "The Reflection verdict is STABLE and the user has approved the Blueprint.",
+          "target": "scaffold-journey-architecture"
+        },
+        {
+          "target": "design-journey-use-cases",
+          "description": "The Reflection verdict is REQUIRES_REFINEMENT. Loop back to refine the design with the reflection feedback."
+        }
+      ],
+      "onError": "abort"
+    },
+    "scaffold-journey-architecture": {
+      "instructions": [
+        "Execute this job in Default mode.",
+        "Use the journey domain identifier provided to the graph."
+      ],
+      "onDone": "implement-journey-contracts",
+      "onError": "abort"
+    },
+    "implement-journey-contracts": {
+      "instructions": [
+        "Before executing, halt and ask the user which use cases to implement from those listed in the Blueprint, or whether to implement all of them.",
+        "The Blueprint artifact is already in context from the previous Echo execution."
+      ],
+      "onDone": "implement-journey-services",
+      "onError": "abort"
+    },
+    "implement-journey-services": {
+      "instructions": [
+        "Execute this job in Default mode.",
+        "Implement services only for the use cases selected by the user in the previous step."
+      ],
+      "onDone": "implement-journey-repositories",
+      "onError": "abort"
+    },
+    "implement-journey-repositories": {
+      "instructions": [
+        "Execute this job in Default mode.",
+        "Implement repositories for all service functions generated in the previous step."
+      ],
+      "onDone": "implement-journey-use-cases-and-actions",
+      "onError": "abort"
+    },
+    "implement-journey-use-cases-and-actions": {
+      "instructions": [
+        "Execute this job in Default mode.",
+        "Implement use cases and actions for all repository functions generated in the previous steps."
+      ],
+      "onDone": "complete",
+      "onError": "abort"
+    }
+  }
+}

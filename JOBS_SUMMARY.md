@@ -41,3 +41,16 @@
 * **Output:** Markdown document with a Mermaid diagram and a code file (`[journey].contract.ts`).
 
 ---
+
+## `implement-services`
+* **Objective:** Implement real and mock service functions for a Storefront journey based on contract analysis.
+* **Input:** A journey identifier and service use cases to implement.
+* **Output:** Code files created at `apps/storefront/apis/[journey]/infrastructure/services/...`.
+
+---
+
+## `implement-repository-and-use-cases`
+* **Objective:** Implement real repository, mock repository, repository factory, and application use cases for a Storefront journey.
+* **Input:** A journey identifier and use cases to implement.
+* **Output:** Code files created at `apps/storefront/apis/[journey]/infrastructure/repository/...` and `apps/storefront/apis/[journey]/application/use-cases/...`.
+

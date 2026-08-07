@@ -90,6 +90,12 @@ function getJourneyFiles(journey) {
     join(
       journeyRoot,
       "application",
+      "actions",
+      `${journey}.action.ts`
+    ),
+    join(
+      journeyRoot,
+      "application",
       "use-cases",
       `${journey}.use-case.ts`
     ),
