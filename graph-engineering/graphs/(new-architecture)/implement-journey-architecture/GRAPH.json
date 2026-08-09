@@ -5,8 +5,18 @@
     "Execute the implement-journey-architecture graph for the account journey.",
     "Run the implement-journey-architecture graph for the saved journey and implement getCurrentUser."
   ],
-  "initial": "design-journey-use-cases",
+  "initial": "read-actions-index",
   "jobs": {
+    "read-actions-index": {
+      "instructions": [],
+      "onDone": "read-use-cases-index",
+      "onError": "abort"
+    },
+    "read-use-cases-index": {
+      "instructions": [],
+      "onDone": "design-journey-use-cases",
+      "onError": "abort"
+    },
     "design-journey-use-cases": {
       "instructions": [
         "Execute this job in Echo mode.",

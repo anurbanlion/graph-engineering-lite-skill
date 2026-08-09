@@ -32,6 +32,13 @@ The job MUST have the Blueprint artifact and the repository factory (`<journey>.
 4. When the Blueprint's discovery matrix reveals existing error-handling patterns (e.g. toast notifications, redirects on auth failure), the agent MUST preserve or replicate those patterns.
 5. Actions MAY include `revalidatePath` or `revalidateTag` calls when cache invalidation is required after a mutation.
 
+**3. Register in Index Files**
+
+1. The agent MUST add explicit named imports for the new use case functions to `apps/storefront/apis/use-cases.index.ts`.
+2. The agent MUST add explicit named imports for the new action functions to `apps/storefront/apis/actions.index.ts`.
+3. Each import statement MUST include a brief inline comment with the format `// Reuse <functionName> when <brief usage hint>`.
+4. Imports MUST be grouped by journey, with each journey group separated by a blank line.
+
 ## Output
 
 The job MUST produce Project Output:
@@ -42,9 +49,12 @@ apps/storefront/apis/<journey>/application/
 │   └── <journey>.use-cases.ts
 └── actions/
     └── <journey>.actions.ts
+
+apps/storefront/apis/use-cases.index.ts
+apps/storefront/apis/actions.index.ts
 ```
 
-On successful completion, the agent MUST report the implemented use cases, actions with their error-handling strategy, and modified file links.
+On successful completion, the agent MUST report the implemented use cases, actions with their error-handling strategy, index file updates, and modified file links.
 
 ## Prompt examples
 
