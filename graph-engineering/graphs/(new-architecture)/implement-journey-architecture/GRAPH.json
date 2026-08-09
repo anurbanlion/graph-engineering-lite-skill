@@ -80,7 +80,24 @@
     "implement-journey-use-cases-and-actions": {
       "instructions": [
         "Execute this job in Default mode.",
-        "Implement use cases and actions for all repository functions generated in the previous steps."
+        "Implement use cases and actions for all repository functions generated in the previous steps.",
+        "After successful execution, halt and ask the user: 'Would you like to start a feedback process to improve the design and audit jobs based on this execution?'"
+      ],
+      "onDone": [
+        {
+          "guard": "The user accepted the feedback process.",
+          "target": "reflect-on-job-execution"
+        },
+        {
+          "target": "complete",
+          "description": "The user declined the feedback process. Complete the graph."
+        }
+      ],
+      "onError": "abort"
+    },
+    "reflect-on-job-execution": {
+      "instructions": [
+        "Use job-reflections as the run/<domain> name."
       ],
       "onDone": "complete",
       "onError": "abort"
