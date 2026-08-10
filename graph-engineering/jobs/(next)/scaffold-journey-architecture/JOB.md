@@ -46,6 +46,8 @@ The script MUST NOT overwrite, modify, truncate, or format existing files.
 
 The script MUST NOT implement use cases, DTOs, services, repositories, factories, mocks, server functions, or server actions.
 
+The script MUST create public entrypoints only at `application/actions/index.ts` and `application/use-cases/index.ts`. The script MUST NOT create a journey-root `index.ts`.
+
 ## Output
 
 The job MUST ensure the following code structure exists for every journey:
@@ -53,14 +55,15 @@ The job MUST ensure the following code structure exists for every journey:
 ```txt
 apps/storefront/apis/
 └── [journey]/
-    ├── index.ts
     ├── domain/
     │   └── contracts/
     │       └── [journey].contract.ts
     ├── application/
     │   ├── actions/
+    │   │   ├── index.ts
     │   │   └── [journey].action.ts
     │   └── use-cases/
+    │       ├── index.ts
     │       └── [journey].use-case.ts
     └── infrastructure/
         ├── repository/

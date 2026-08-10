@@ -20,19 +20,24 @@ The job MUST have the Blueprint artifact and the repository factory (`<journey>.
 
 **1. Implement Use Cases**
 
-1. The agent MUST implement use case functions in `<journey>.use-cases.ts`.
+1. The agent MUST implement use case functions in `<journey>.use-case.ts`.
 2. Each use case function MUST obtain the repository instance by calling the factory function.
 3. Each use case function MUST forward the call to the repository and return its result.
 
 **2. Implement Actions**
 
-1. The agent MUST implement Server Actions in `<journey>.actions.ts` using `"use server"` directive.
+1. The agent MUST implement Server Actions in `<journey>.action.ts` using `"use server"` directive.
 2. Each action MUST call the corresponding use case function.
 3. Actions that perform mutations MUST include error handling (`try/catch`), returning structured results (e.g. `{ ok: boolean; error?: string }`).
 4. When the Blueprint's discovery matrix reveals existing error-handling patterns (e.g. toast notifications, redirects on auth failure), the agent MUST preserve or replicate those patterns.
 5. Actions MAY include `revalidatePath` or `revalidateTag` calls when cache invalidation is required after a mutation.
+6. The agent MUST preserve local provider actions as client-side functions when the Blueprint classifies them as local; it MUST NOT turn them into Server Actions.
 
-**3. Register in Index Files**
+**3. Define Public Export Boundary**
+
+1. The agent MUST explicitly export runtime APIs from `application/use-cases/index.ts` and `application/actions/index.ts`.
+
+**4. Register in Central Discovery Inventories**
 
 1. The agent MUST add explicit named imports for the new use case functions to `apps/storefront/apis/use-cases.index.ts`.
 2. The agent MUST add explicit named imports for the new action functions to `apps/storefront/apis/actions.index.ts`.
@@ -46,15 +51,17 @@ The job MUST produce Project Output:
 ```txt
 apps/storefront/apis/<journey>/application/
 ├── use-cases/
-│   └── <journey>.use-cases.ts
+│   ├── index.ts
+│   └── <journey>.use-case.ts
 └── actions/
-    └── <journey>.actions.ts
+    ├── index.ts
+    └── <journey>.action.ts
 
 apps/storefront/apis/use-cases.index.ts
 apps/storefront/apis/actions.index.ts
 ```
 
-On successful completion, the agent MUST report the implemented use cases, actions with their error-handling strategy, index file updates, and modified file links.
+On successful completion, the agent MUST report the implemented use cases, the implemented Server Actions with their error-handling and cache-invalidation strategy, local provider actions preserved (if any), index file updates, and modified file links.
 
 ## Prompt examples
 

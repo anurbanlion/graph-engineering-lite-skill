@@ -5,21 +5,19 @@
     "Execute the implement-journey-architecture graph for the account journey.",
     "Run the implement-journey-architecture graph for the saved journey and implement getCurrentUser."
   ],
-  "initial": "read-actions-index",
+  "initial": "read-indexes",
   "jobs": {
-    "read-actions-index": {
-      "instructions": [],
-      "onDone": "read-use-cases-index",
-      "onError": "abort"
-    },
-    "read-use-cases-index": {
-      "instructions": [],
+    "read-indexes": {
+      "instructions": [
+        "Read the following index files: apps/storefront/apis/actions.index.ts, apps/storefront/apis/use-cases.index.ts"
+      ],
       "onDone": "design-journey-use-cases",
       "onError": "abort"
     },
     "design-journey-use-cases": {
       "instructions": [
         "Execute this job in Echo mode.",
+        "If no journey is supplied, ask the user for one.",
         "Use the journey domain identifier suffixed with -journey as the run/<domain> name; for example, account resolves to account-journey."
       ],
       "onDone": "audit-journey-use-cases",

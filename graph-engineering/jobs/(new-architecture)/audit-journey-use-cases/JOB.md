@@ -38,16 +38,24 @@ For each use case identified in the design artifact, the agent MUST audit these 
 4. **Package SDKs**: Functions exported by `packages/*` that wrap or orchestrate backend calls.
 5. **Storefront Implementations**: Existing server actions, demo functions, in-memory stores, or custom wrappers in the Storefront app.
 
+When the journey has a shared layout, multiple routes, or shared client state, the audit MUST verify the concrete layout/page/shell composition and identify which reads belong in a shared layout, which mutations belong to server actions, and which transitions/state updates remain local.
+
 **2. Reconcile UI Models with Backend Boundaries**
 
 1. The agent MUST compare each preliminary UI data model against the discovered backend sources.
 2. When a single UI model requires data from multiple disjoint sources (e.g. Auth user + `user_profiles` table + `customer_addresses` table), the agent MUST recommend whether to split the model into separate types or keep a unified type with multi-source assembly.
 3. When the audit reveals that a single use case should be decomposed into multiple granular operations (e.g. `getUser` → `getCurrentUser` + `getDeliveryAddresses`), the agent MUST document the recommended decomposition and its rationale.
+4. For every transient model that exists in the journey, the audit MUST verify state ownership, authority, storage medium, navigation lifetime, reset path, and prohibited implicit persistence.
 
 **3. Document Field Mappings and Service Specs**
 
 1. For each use case requiring data adaptation, the agent MUST produce a field mapping table comparing backend source fields to UI model fields.
 2. The agent MUST classify each mapping: Direct, Conditional, Backend-only, UI-only, or Unverifiable.
+
+**4. Reuse and Boundary Classification**
+
+1. The audit MUST prefer extending a compatible existing use case when it preserves the owning domain, and MUST justify every proposed new use case that overlaps a discovered operation.
+2. The audit MUST classify every operation as `use case`, `server action`, `local provider action`, or `framework behavior`, and MUST state the triggering component.
 
 **5. Reflection (Stabilization Check)**
 
@@ -67,7 +75,13 @@ When `STABLE`, the agent MUST present the final Blueprint to the user for approv
 
 ## Output
 
-The job MUST produce a Managed Output (Blueprint) as a Markdown document with the following structure:
+The job MUST produce a Managed Output (Blueprint) as a Markdown document.
+
+When the journey has a shared layout, multiple routes, or shared client state, the Blueprint MUST be organized by the applicable `Shared Layout` and each route, with separate `Use Cases` and `Actions` tables in every section. A single-page journey MUST NOT include unused sections.
+
+When transient journey state exists, the Blueprint MUST include a `Journey State and Lifetime` table covering owner, storage, navigation survival, reset conditions, authoritative server checkpoints, and persistence exclusions.
+
+Mermaid labels containing route syntax, punctuation, or other special characters MUST be quoted.
 
 ```md
 # <Journey> Journey Blueprint
@@ -85,9 +99,29 @@ The job MUST produce a Managed Output (Blueprint) as a Markdown document with th
 | `User` | `name`, `email`, `phone` | Removed `addresses` (separate query) | Auth + `user_profiles` table. |
 | `DeliveryAddress` | `addressLine1`, `city`, `isDefault` | Added `isDefault` from backend | `customer_addresses` table. |
 
-## Five-Layer Discovery Matrix
+## Journey State and Lifetime (when applicable)
 
-### Use Case: `getCurrentUser`
+| Model | Owner | Storage | Navigation Survival | Reset Conditions | Server Checkpoints | Persistence Exclusions |
+| --- | --- | --- | --- | --- | --- | --- |
+| `CheckoutDraft` | `CheckoutProvider` | Client memory | Survives sibling route navigation | Hard refresh, checkout completion | `prepareCheckout`, `completeCheckout` | MUST NOT update profile, address, or fiscal records |
+
+## Shared Layout (when applicable)
+
+### Use Cases
+
+| Use Case | Classification | Source | Triggering Component | Notes |
+| --- | --- | --- | --- | --- |
+
+### Actions
+
+| Action | Classification | Source | Triggering Component | Notes |
+| --- | --- | --- | --- | --- |
+
+## Route: `personal`
+
+### Five-Layer Discovery Matrix
+
+#### Use Case: `getCurrentUser`
 
 | Layer | Status | Source / Reference | Notes |
 | --- | --- | --- | --- |
@@ -96,6 +130,16 @@ The job MUST produce a Managed Output (Blueprint) as a Markdown document with th
 | Supabase DB | ✅ Available | `user_profiles` table | `display_name`, `phone`. |
 | Package SDK | ✅ Available | `@chiki/account-sdk` → `getCurrentUser()` | Wraps Auth + profile query. |
 | Storefront | 🟡 Mock | `getCurrentUser()` in `server-db` | In-memory mock store. |
+
+### Use Cases
+
+| Use Case | Classification | Source | Triggering Component | Notes |
+| --- | --- | --- | --- | --- |
+
+### Actions
+
+| Action | Classification | Source | Triggering Component | Notes |
+| --- | --- | --- | --- | --- |
 
 ## Field Mapping Specifications
 
@@ -128,4 +172,3 @@ On successful completion, the agent MUST report the use cases audited, models re
 ```txt
 Execute the audit-journey-use-cases job for the account journey.
 ```
-
