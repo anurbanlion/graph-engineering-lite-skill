@@ -118,7 +118,7 @@ A job MAY produce a Project Output, a Managed Output, or both:
 
 **Graph validation**
 
-6. The agent MUST validate the selected graph by executing `node scripts/validate-graph.mjs 1.0 <graph-name>` before executing its first job.
+6. The agent MUST validate the selected graph by executing `node scripts/validate-graph.mjs <version> <graph-name>` before executing its first job. The `<version>` argument MUST match the `version` field declared in the graph's `GRAPH.json` definition.
 7. If graph validation fails, the agent MUST stop the graph execution and inform the user of the validation errors.
 
 **Graph execution**
@@ -278,16 +278,16 @@ $ node scripts/read-graphs.mjs build-application-use-cases build-journey-archite
 ```
 
 ```bash
-# Validate a valid graph definition
-$ node scripts/validate-graph.mjs 1.0 build-application-use-cases
+# Validate a valid graph definition (version must match the graph's declared version)
+$ node scripts/validate-graph.mjs 2.0 build-application-use-cases
 Graph is valid: build-application-use-cases
-Version: 1.0
+Version: 2.0
 Definition: /home/user/projects/my-project/graph-engineering/graphs/build-application-use-cases/GRAPH.json
 ```
 
 ```bash
 # Validate an invalid graph definition
-$ node scripts/validate-graph.mjs 1.0 invalid-graph
+$ node scripts/validate-graph.mjs 2.0 invalid-graph
 Graph validation failed: invalid-graph
 - "initial" MUST be a non-empty string.
 ```
