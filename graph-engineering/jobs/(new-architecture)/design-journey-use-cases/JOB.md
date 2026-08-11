@@ -38,7 +38,7 @@ Shell: apps/storefront/src/app/demo/[lang]/account/shell.tsx
 3. The agent MUST classify an operation as a use case when it represents a user goal, business action, data retrieval, data mutation, authentication action, or meaningful navigation action.
 3.1. The agent MUST preserve the section architecture detected in the page, shell, and screen. For CMS-sourced data, the agent MUST propose one CMS call per relevant section, including routes, content, and configuration sections.
 4. Guards, route context, and pure framework utilities MUST NOT be classified as use cases.
-5. The agent MUST classify route navigation and local draft updates as framework/local behavior unless they invoke an application boundary. When a journey has transient shared state, the agent MUST document the state owner, lifetime, reset behavior, and persistence boundary.
+5. The agent MUST document guard, redirect, not-found, and href outcomes as Navigation Scenarios when they leave or change the current route. The agent MUST document sorting, selection controls, tab changes, and in-page scrolling as Local Scenarios unless they invoke an application boundary. When a feedback control mutates an existing persisted entity, the agent MUST classify it as the owning domain action, not as another invocation of the preceding action.
 6. Hooks and state functions expressing operational intent MUST be reclassified under the relevant expected use case.
 7. The agent MUST evaluate the indexes already loaded into context and the supplied implementation for a semantically compatible operation, and SHOULD extend or reuse it before proposing a new use case.
 8. The agent MUST propose preliminary UI data models by inspecting the types consumed or displayed by the page and shell (e.g. `User`, `DeliveryAddress[]`, `CartItem[]`). These models represent what the journey ideally needs, independent of backend structure.
@@ -47,7 +47,11 @@ Shell: apps/storefront/src/app/demo/[lang]/account/shell.tsx
 
 The job MUST produce a Managed Output as a Markdown document.
 
-When the journey has a shared layout, multiple routes, or shared client state, the template MUST have an applicable `Shared Layout` section followed by one section per route. Each section MUST contain separate `Use Cases`, `Actions`, and `Local State / Exclusions` subsections. A single-page journey MUST use only its route section without inventing a shared-layout section.
+When the journey has a shared layout, multiple routes, or shared client state, the template MUST have an applicable `Shared Layout` section followed by one section per route. Each section MUST contain separate `Use Cases`, `Actions`, `Navigation Scenarios`, and `Local Scenarios` subsections.
+
+The `Navigation Scenarios` and `Local Scenarios` tables MUST use BDD-inspired `When` and `Then` language. Each `Then` cell MAY contain multiple ordered consequences.
+
+A scenario MAY have multiple equivalent triggers and triggering components when they lead to the same `Then` consequences. The template MUST record them in one scenario row rather than duplicate the scenario.
 
 For transient journey-state models only, the Preliminary UI Data Models table MUST include `Owner`, `Lifetime`, and `Persistence` columns. `Owner` identifies the component or provider controlling the state; `Lifetime` states when it survives or resets; `Persistence` states whether and where it is stored. Backend-sourced models (e.g. `Cart`, `DeliveryAddress`) do not need these columns.
 
@@ -85,10 +89,15 @@ For transient journey-state models only, the Preliminary UI Data Models table MU
 | Kind | Type | Signature | Source | Description |
 | --- | --- | --- | --- | --- |
 
-### Local State / Exclusions
+### Navigation Scenarios
 
-| Type | Signature | Source | Description |
-| --- | --- | --- | --- |
+| Scenario | When | Then | Triggering Component | Description |
+| --- | --- | --- | --- | --- |
+
+### Local Scenarios
+
+| Scenario | When | Then | Triggering Component | Description |
+| --- | --- | --- | --- | --- |
 
 ## Route: `personal`
 
@@ -106,14 +115,17 @@ For transient journey-state models only, the Preliminary UI Data Models table MU
 | 🎯 Expected | Application action | `logout(): Promise<void>` | `To be defined` | Ends the session. |
 | 🔎 Existing | Server action | `logoutAction()` | `../actions` | Current action invoked by the shell. |
 
-### Local State / Exclusions
+### Navigation Scenarios
 
-The following are not considered use cases:
+| Scenario | When | Then | Triggering Component | Description |
+| --- | --- | --- | --- | --- |
+| Access is denied | An authorization guard rejects the current user. | The current route ends.<br>The buyer navigates to the defined fallback route.<br>No protected screen is rendered. | `RouteGuard` | Guard outcome that changes route rendering. |
 
-| Type | Signature | Source | Description |
-| --- | --- | --- | --- |
-| Guard | `assertUser(user)` | `@/lib/demo/utils` | Validates access. |
-| Local draft update | `setPersonalInfo(data)` | `CheckoutProvider` | Updates transient provider state. |
+### Local Scenarios
+
+| Scenario | When | Then | Triggering Component | Description |
+| --- | --- | --- | --- | --- |
+| Change sort | The user chooses a sort option. | The visible rows reorder locally.<br>No server request occurs. | `ListingSection` | Operates on already loaded rows. |
 ```
 
 On successful completion, the agent MUST report the pages and shells analyzed, expected use cases, proposed UI data models, and the managed output file link.
