@@ -83,7 +83,7 @@ The agent MUST NOT modify the following unless the user explicitly requests it:
 
 ## Output
 
-The job MUST produce [deliverable specification: Project Output (repository files/code), Managed Output (persisted Markdown artifact), or both].
+The job MUST produce [deliverable specification: Project Output (repository files/code), Managed Output (persisted Markdown artifact), or both]. Every successfully completed job produces the skill-defined Context Output.
 
 Output generation, serialization and formatting are executed [manually by the agent / deterministically by script].
 
@@ -104,9 +104,34 @@ Output generation, serialization and formatting are executed [manually by the ag
 └── [example-file.ts]
 ```
 
+**Context Output Extension (when applicable)**
+
+In addition to the mandatory links for generated or modified artifacts, the Context Output MUST report:
+
+- [job-specific result, decision, count, limitation, or next action].
+
+**Mandatory Context Output example**
+
+The mandatory artifact links MUST be grouped under the producing job's logical identifier.
+
+```md
+- **validate-api-schemas**:
+  - [user.schema.ts](apps/api/src/schemas/user.schema.ts)
+  - [API Validation Report](.graph-engineering/runs/api/validate-api-schemas/OUTPUT-20260811-1030.md)
+```
+
+Example:
+
+```md
+- **Summary**: Validated 12 API schemas; 10 passed and 2 require review.
+- **Limitation**: The payment-provider schema could not be validated because its source file is unavailable.
+- **Next action**: Provide the payment-provider schema to complete validation.
+```
+
+Context Output MUST NOT be persisted or used as a downstream-job handoff.
+
 On successful completion, the agent MUST report:
 
-- [completed unit, artifact location, file link, or execution summary];
 - [changes, findings, or handoff values].
 
 On failure, the agent MUST report [error context, failing input, missing dependency, or target path].

@@ -43,6 +43,10 @@ A **run** is one execution of a job within a project. When a job produces an art
 
 The **project folder** is the user's working project. `.graph-engineering` is the skill-managed directory created inside that project for execution data.
 
+### Output types
+
+Jobs MAY create **Project Outputs** in the repository, **Managed Outputs** as persisted Markdown artifacts under `.graph-engineering/runs`, or both. Every successfully completed job also produces a **Context Output**: a non-persisted message for the user that links every file created or modified during that execution. Context Output is user-facing only.
+
 ## How it works
 
 1. You explicitly ask the agent to run a job or graph.
@@ -61,6 +65,7 @@ The skill does not create or execute jobs or graphs without an explicit request.
 - **Automatic discovery:** selects from the jobs or graphs available in the skill.
 - **Graph validation:** checks workflow references before execution begins.
 - **Managed outputs:** stores generated artifacts in deterministic project locations.
+- **Context outputs:** always reports links to files generated or modified in the current execution.
 - **Execution logs:** records activity under `.graph-engineering/logs`.
 - **Safe execution:** requires explicit user intent and stops invalid graphs before downstream work runs.
 - **Resumable interaction:** a graph may pause for missing user input and continue from the same job once that input is provided.

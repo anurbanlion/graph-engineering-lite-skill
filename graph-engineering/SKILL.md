@@ -62,10 +62,13 @@ job-graph-engineering/
 
 ## Job output types
 
-A job MAY produce a Project Output, a Managed Output, or both:
+A job MAY produce a Project Output, a Managed Output, or both. Every successfully completed job MUST produce a Context Output:
 
 - **Project Output**: Creates or modifies repository files directly (such as source code, configuration files, tests, or generated directory structures).
 - **Managed Output**: Creates a persisted Markdown document artifact produced by a run, stored at `.{local-skill-folder}/runs/<domain>/<job-name>/OUTPUT-timestamp.md`.
+- **Context Output**: A non-persisted message directed to the user. It MUST list links to every Project Output created or modified and every Managed Output generated during the current job execution, grouped by the producing job's logical identifier. When the job generates or modifies no file artifacts, it MUST explicitly state that no file artifacts were generated.
+
+A job MAY define additional Context Output requirements in its `JOB.md`. Those requirements MUST extend the mandatory artifact-link list; they MUST NOT replace it.
 
 ## Executing jobs
 
@@ -89,27 +92,23 @@ A job MAY produce a Project Output, a Managed Output, or both:
 7. If the selected job produces a managed output, the agent MUST resolve the output path by executing `node scripts/resolve-output-path.mjs <domain> <job-name>`. The agent MUST NOT create an alternative output path manually.
 8. If executing in **Latest mode**, the agent MUST **NOT** execute the `JOB.md` process, create project files, or run job scripts (this affects execution regardless of whether the job produces a managed output, project output, or both).
 9. If executing in **Latest mode** and the job produces a managed output, the agent MUST dump the latest output into context by executing `node scripts/dump-latest-output.mjs <domain> <job-name>`. If no output exists, the agent MUST report failure and halt unless the active graph job instructions explicitly define a fallback strategy, e.g. continue the next job.
+10. If executing in **Iterative mode**, the agent MUST first execute the job in Latest mode and then execute it in Default mode. If the user explicitly requests Echo mode, the second execution MUST use Echo mode instead of Default mode. If execution of the first job fails because there is no a latest manage output, halt execution, inform the user and ask if the agent should continue with the second execution.
 
 > Note: A managed-output domain name is a required input whenever `resolve-output-path.mjs` requires it. The agent MUST ask for it when absent and MUST NOT infer it.
 
 **Job execution**
 
-9. If the selected job produces project outputs, the agent MUST execute the job process according to its `JOB.md` instructions to create or modify repository files.
-10. If the selected job produces a managed output, the agent MUST execute the job process according to its `JOB.md` instructions and write the output Markdown artifact to the path resolved in **Job pre-execution**.
-11. Upon job completion, the agent MUST present a structured **Context Output** summary to the user with grouped file links for all produced or available artifacts. Example:
+11. If the selected job produces project outputs, the agent MUST execute the job process according to its `JOB.md` instructions to create or modify repository files.
+12. If the selected job produces a managed output, the agent MUST execute the job process according to its `JOB.md` instructions and write the output Markdown artifact to the path resolved in **Job pre-execution**.
+13. Upon successful job completion, the agent MUST present a **Context Output** to the user. It MUST group every link under the producing job's logical identifier and link every Project Output created or modified and every Managed Output generated during the current job execution. It MUST NOT link merely available artifacts from earlier executions. If the job generated or modified no file artifacts, it MUST explicitly state that result. The job's `JOB.md` MAY require additional user-facing information in this Context Output. Example:
 
 ```md
-- **Design Files**: 
-  - Links to design managed output artifacts.
-- **Blueprint Files**: 
-  - Links to audit/blueprint managed output artifacts.
-- **Project Files**: 
-  - Links to created or modified repository source files.
-- **Reflection Files**: 
-  - Links to reflection managed output artifacts.
+- **design-journey-use-cases**:
+  - [Journey Use-Case Design](.graph-engineering/runs/account/design-journey-use-cases/OUTPUT-20260811-1030.md)
+  - [account.contract.ts](apps/storefront/apis/account/domain/contracts/account.contract.ts)
 ```
 
-12. If executing in **Echo mode** and the job produces a managed output, the agent MUST dump the managed output into context by executing `node scripts/dump-latest-output.mjs <domain> <job-name>`.
+14. If executing in **Echo mode** and the job produces a managed output, the agent MUST dump the managed output into context by executing `node scripts/dump-latest-output.mjs <domain> <job-name>`.
 
 ## Executing graphs
 
@@ -140,7 +139,7 @@ A job MAY produce a Project Output, a Managed Output, or both:
 10. The agent MUST NOT inspect manually a managed output artifact (i.e. reading a file) to derive a downstream job input, a system for the managed output to be visible on context is already taken into account with managed output modes.
 11. After a successful job execution, the agent MUST continue with the job or terminal outcome defined by `onDone`.
 12. After a failed job execution, the agent MUST continue with the job or terminal outcome defined by `onError`.
-13. Upon graph completion, the agent MUST present a consolidated **Context Output** containing grouped file links for all artifacts accumulated throughout the entire graph execution.
+13. Upon successful graph completion, the agent MUST present a consolidated **Context Output** containing file links grouped by producing job for every Project Output modified and Managed Output generated during that graph execution.
 
 ## Graph parsing rules
 

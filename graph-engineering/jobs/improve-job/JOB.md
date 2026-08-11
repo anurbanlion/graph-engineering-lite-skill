@@ -1,4 +1,4 @@
-# Reflect on Job Execution
+# Improve Job
 
 ## Objective
 
@@ -99,5 +99,5 @@ On successful completion, the agent MUST report the jobs identified for improvem
 ## Prompt examples
 
 ```txt
-Execute the reflect-on-job-execution job.
+Execute the improve-job job.
 ```

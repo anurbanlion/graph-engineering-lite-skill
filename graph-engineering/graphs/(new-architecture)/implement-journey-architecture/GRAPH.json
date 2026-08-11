@@ -84,7 +84,7 @@
       "onDone": [
         {
           "guard": "The user accepted the feedback process.",
-          "target": "reflect-on-job-execution"
+          "target": "improve-job"
         },
         {
           "target": "complete",
@@ -93,7 +93,7 @@
       ],
       "onError": "abort"
     },
-    "reflect-on-job-execution": {
+    "improve-job": {
       "instructions": [
         "Use job-reflections as the run/<domain> name."
       ],

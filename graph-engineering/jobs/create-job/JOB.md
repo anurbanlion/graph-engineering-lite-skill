@@ -25,7 +25,8 @@ The job MUST receive at least one of the following:
 
 1. The agent MUST structure the job definition using RFC-style normative keywords (`MUST`, `MUST NOT`, `SHOULD`, `MAY`).
 2. The agent MUST assign a kebab-case directory name and human-readable title.
-3. The agent MUST populate all required sections (`Objective`, `Inputs`, `Process`, `Output`, and `Prompt examples`).
+3. The agent MUST identify whether the job produces Project Output, Managed Output, or both. The agent MUST treat Context Output as mandatory for every successfully completed job and MAY define an extension only when the job must report user-facing information beyond the mandatory artifact links.
+4. The agent MUST populate all required sections (`Objective`, `Inputs`, `Process`, `Output`, and `Prompt examples`).
 
 **3. Output Persistence & Validation**
 
@@ -34,6 +35,7 @@ The job MUST receive at least one of the following:
    graph-engineering/jobs/<job-name>/JOB.md
    ```
 2. The agent MUST verify that the generated job matches the structure retrieved by `node scripts/read-job-template.mjs` or `graph-engineering/templates/job-template.md`.
+3. The agent MUST verify that any Context Output extension supplements the skill-defined artifact links and does not define persistence or a downstream-job handoff.
 
 ## Output
 
@@ -44,7 +46,7 @@ graph-engineering/jobs/<job-name>/
 └── JOB.md
 ```
 
-On successful completion, the agent MUST report:
+In addition to the mandatory artifact links, the Context Output MUST report:
 
 - The created job directory path and file link (`graph-engineering/jobs/<job-name>/JOB.md`);
 - A summary of the specified inputs and outputs.
