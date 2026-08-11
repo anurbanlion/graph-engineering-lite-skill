@@ -96,9 +96,20 @@ A job MAY produce a Project Output, a Managed Output, or both:
 
 9. If the selected job produces project outputs, the agent MUST execute the job process according to its `JOB.md` instructions to create or modify repository files.
 10. If the selected job produces a managed output, the agent MUST execute the job process according to its `JOB.md` instructions and write the output Markdown artifact to the path resolved in **Job pre-execution**.
-11. For project outputs, the agent MUST present a summary of created or modified project files and file links to the user.
-12. For managed outputs, the agent MUST present the file link of the generated artifact to the user.
-13. If executing in **Echo mode** and the job produces a managed output, the agent MUST dump the managed output into context by executing `node scripts/dump-latest-output.mjs <domain> <job-name>`.
+11. Upon job completion, the agent MUST present a structured **Context Output** summary to the user with grouped file links for all produced or available artifacts. Example:
+
+```md
+- **Design Files**: 
+  - Links to design managed output artifacts.
+- **Blueprint Files**: 
+  - Links to audit/blueprint managed output artifacts.
+- **Project Files**: 
+  - Links to created or modified repository source files.
+- **Reflection Files**: 
+  - Links to reflection managed output artifacts.
+```
+
+12. If executing in **Echo mode** and the job produces a managed output, the agent MUST dump the managed output into context by executing `node scripts/dump-latest-output.mjs <domain> <job-name>`.
 
 ## Executing graphs
 
@@ -129,6 +140,7 @@ A job MAY produce a Project Output, a Managed Output, or both:
 10. The agent MUST NOT inspect manually a managed output artifact (i.e. reading a file) to derive a downstream job input, a system for the managed output to be visible on context is already taken into account with managed output modes.
 11. After a successful job execution, the agent MUST continue with the job or terminal outcome defined by `onDone`.
 12. After a failed job execution, the agent MUST continue with the job or terminal outcome defined by `onError`.
+13. Upon graph completion, the agent MUST present a consolidated **Context Output** containing grouped file links for all artifacts accumulated throughout the entire graph execution.
 
 ## Graph parsing rules
 
