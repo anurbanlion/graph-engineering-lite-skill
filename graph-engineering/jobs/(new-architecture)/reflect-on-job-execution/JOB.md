@@ -28,54 +28,68 @@ The job MUST have available in context:
 
 1. For each identified gap or user correction, the agent MUST determine which job in the executed graph is responsible — that is, which job's process or output template failed to account for the issue.
 2. The agent MUST read the JOB.md definition of each identified job using `node scripts/read-jobs.mjs <job-name>`.
+2.1. After reading each JOB.md, the agent MUST identify the exact existing step or output-template section for every recommendation. It MUST label the recommendation `Add`, `Modify`, or `Remove`. If no existing target exists, it MUST label it `Add new step` or `Add new section`.
 3. The agent MUST compare each job's process and output template against the actual artifacts and behavior observed during execution.
 4. The agent MUST flag any step that was skipped, reinterpreted, or manually corrected by the user during execution.
 5. The agent MUST flag any output section that was consistently ignored, restructured, or deemed insufficient by the user.
 
 **3. Produce Changelist**
 
-1. For each identified misalignment, the agent MUST produce a change entry specifying:
-   - **Target**: The logical identifier of the affected job.
-   - **Section**: `Process` or `Output Template`.
-   - **Current behavior**: What the job currently prescribes.
-   - **Proposed behavior**: What the job SHOULD prescribe to align with the user's vision.
-   - **Rationale**: Why this change is recommended, referencing specific conversation evidence or output gaps.
-2. Every change MUST be generalized. The agent MUST NOT propose journey-specific or instance-specific fixes. When the user corrected a concrete omission (e.g. a missing use case), the agent MUST trace the omission back to the process gap or classification criteria that caused it and propose a change that prevents the entire class of miss, not just the individual instance.
-3. The changelist MUST be ordered by target job, then by section.
+1. For each affected job and each changed section, the agent MUST produce one complete `diff` block containing all proposed changes to that section. The agent MUST follow each block with a table containing `Change`, `Supporting Example`, and `Rationale` rows for the diff hunks; every `Change` value MUST begin with `Add`, `Modify`, or `Remove`.
+2. Code MAY appear only in `Supporting Example` and only when the changed process concerns implementation. Code MUST NOT replace the process description in the diff.
+3. Every change MUST be generalized. The agent MUST NOT propose journey-specific or instance-specific fixes. When the user corrected a concrete omission (e.g. a missing use case), the agent MUST trace the omission back to the process gap or classification criteria that caused it and propose a change that prevents the entire class of miss, not just the individual instance.
+4. The changelist MUST be ordered by target job, then by section.
 
 ## Output
 
 The job MUST produce a Managed Output as a Markdown document.
 
-```md
+````md
 # Execution Reflection Changelist
 
 ## Changes for `<job-identifier>`
 
 ### Process Changes
 
-| # | Current Behavior | Proposed Behavior | Rationale |
-| --- | --- | --- | --- |
-| 1 | The agent classifies hooks under relevant use cases. | The agent MUST also document which hook state maps to which use case parameter. | User repeatedly asked for hook-to-parameter traceability during execution. |
+```diff
+## Process
+
+- existing step text
++ replacement or new step text
+```
+
+| Change | Supporting Example | Rationale |
+| --- | --- | --- |
+| Add: inventory screen sections before classification. | `HomeScreen` has Hero, Promotions, Featured Products, and Footer sections. | Footer was incorrectly dropped from the initial design. |
+| Modify: classify route navigation as local unless it crosses an application boundary. | `setPersonalInfo(data)` is a local provider action, not a server action. | Local draft updates were incorrectly promoted to server actions. |
 
 ### Output Template Changes
 
-| # | Current Behavior | Proposed Behavior | Rationale |
-| --- | --- | --- | --- |
-| 1 | Models table includes `Fields` and `Notes` columns. | Add a `Source Hint` column indicating the suspected backend origin. | The audit repeatedly discovered sources that could have been anticipated at design time. |
+```diff
+## Output
+
+- existing template text
++ replacement or new template text
+```
+
+| Change | Supporting Example | Rationale |
+| --- | --- | --- |
+| Add: `Detected Sections` table before `Use Cases`, organized by page. | `Home` \| `Promotions` \| `PromotionsSection` \| `packages/ui/src/.../PromotionsSection.tsx` | Preserves the screen's section architecture. |
 
 ## Changes for `<another-job-identifier>`
 
 ### Process Changes
 
-| # | Current Behavior | Proposed Behavior | Rationale |
-| --- | --- | --- | --- |
+```diff
+## Process
 
-### Output Template Changes
-
-| # | Current Behavior | Proposed Behavior | Rationale |
-| --- | --- | --- | --- |
+- existing step text
++ replacement or new step text
 ```
+
+| Change | Supporting Example | Rationale |
+| --- | --- | --- |
+````
 
 On successful completion, the agent MUST report the jobs identified for improvement, the number of changes per job and section, and the managed output file link.
 
