@@ -49,8 +49,21 @@ function getJourneyFiles(journey) {
   const journeyRoot = join(paths.projectDirectory, "apps", "storefront", "apis", journey);
 
   return [
-    join(journeyRoot, "index.ts"),
     join(journeyRoot, "domain", "contracts", `${journey}.contract.ts`),
+    join(journeyRoot, "application", "actions", "index.ts"),
+    join(
+      journeyRoot,
+      "application",
+      "actions",
+      `${journey}.action.ts`
+    ),
+    join(journeyRoot, "application", "use-cases", "index.ts"),
+    join(
+      journeyRoot,
+      "application",
+      "use-cases",
+      `${journey}.use-case.ts`
+    ),
     join(
       journeyRoot,
       "infrastructure",
@@ -86,18 +99,6 @@ function getJourneyFiles(journey) {
       "infrastructure",
       "repository",
       `${journey}.mock.repository.ts`
-    ),
-    join(
-      journeyRoot,
-      "application",
-      "actions",
-      `${journey}.action.ts`
-    ),
-    join(
-      journeyRoot,
-      "application",
-      "use-cases",
-      `${journey}.use-case.ts`
     ),
   ];
 }
