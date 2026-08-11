@@ -1,0 +1,27 @@
+{
+  "name": "apply-new-tags",
+  "version": "1.0",
+  "example-prompts": [
+    "Execute the apply-new-tags graph.",
+    "Run the apply-new-tags graph for apps/storefront/src/app/[lang]/account/page.tsx."
+  ],
+  "initial": "add-tags",
+  "jobs": {
+    "add-tags": {
+      "instructions": [
+        "If no page identifier or page file path was supplied to the graph, halt and ask the user which page will receive the new tags.",
+        "Execute the job with the page supplied by the user or graph input.",
+        "This initial job version MUST only forward the page value and MUST NOT apply tags."
+      ],
+      "onDone": "reflect-on-job-execution",
+      "onError": "abort"
+    },
+    "reflect-on-job-execution": {
+      "instructions": [
+        "Use job-reflections as the run/<domain> name."
+      ],
+      "onDone": "complete",
+      "onError": "abort"
+    }
+  }
+}
