@@ -1,4 +1,4 @@
-# Add Tags
+# Migrate Tags
 
 > Version: 1.0
 
@@ -43,9 +43,9 @@ On failure, the agent MUST report that the page input is missing.
 ## Prompt examples
 
 ```txt
-Execute the add-tags job for apps/storefront/src/app/[lang]/account/page.tsx.
+Execute the migrate-tags job for apps/storefront/src/app/[lang]/account/page.tsx.
 ```
 
 ```txt
-Run add-tags for the checkout page.
+Run migrate-tags for the checkout page.
 ```
