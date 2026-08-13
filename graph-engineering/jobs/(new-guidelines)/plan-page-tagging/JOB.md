@@ -21,12 +21,12 @@ The job MAY receive:
 
 1. The agent MUST verify that the new implementation is available or create it otherwise.
 2. If a reference implementation was supplied, the agent MUST use it as the comparison source.
-3. If no reference implementation was supplied, the agent MAY search only within `pages/` for a plausible equivalent of the new page.
+3. If no reference implementation was supplied, the agent MUST search within `pages/`, and only within `pages/`, for a plausible equivalent of the new page. The agent MUST NOT request user authorization merely to perform this constrained discovery search.
 4. When a plausible equivalent is found, the agent MUST present its file link and MUST wait for explicit user confirmation before reading or using it as the reference.
 5. When no single plausible equivalent is found, the agent MUST request the correct reference implementation from the user.
 
 6. After both implementations are available, the agent MUST inventory their rendered sections in order and MUST create one checklist row per target-page section and tag pair. The `Section` value MAY repeat when a section has multiple tags.
-7. Each checklist item MUST identify the section, old tag, new tag identifier, Tracking API, and status.
+7. Each checklist item MUST identify the section, old tag, new tag identifier, Tracking API, and status. A disabled tracking target MUST be `implemented` when its callback and identifier exist in the target page.
 8. The agent MUST produce a section-based migration plan and MUST NOT perform implementation work.
 
 ## Output
@@ -44,7 +44,7 @@ The `New Tag` value MUST identify the new analytics callback and tag identifier 
 
 The `Tracking API` value MUST be `useTracking` or `TrackedAction`. The job MUST select one of these APIs even when the new implementation currently uses a declarative `analytics` prop.
 
-The `Status` value MUST be one of `planned`, `implemented` or  `error`.
+The `Status` value MUST be one of `planned`, `implemented`, or `error`. It MUST be `implemented` when the target-page code contains the mapped analytics callback and identifier, even when the tracking target disables event delivery. It MUST be `planned` only when that integration is absent or partially absent and MUST be `error` when the target implementation cannot be assessed.
 
 The mandatory Context Output MUST link the generated Managed Output under the `plan-page-tagging` job identifier.
 

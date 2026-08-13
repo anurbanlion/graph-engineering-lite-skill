@@ -118,17 +118,12 @@ The mandatory artifact links MUST be grouped under the producing job's logical i
 - **validate-api-schemas**:
   - [user.schema.ts](apps/api/src/schemas/user.schema.ts)
   - [API Validation Report](.graph-engineering/runs/api/validate-api-schemas/OUTPUT-20260811-1030.md)
+  - **Summary**: Validated 12 API schemas; 10 passed and 2 require review.
+  - **Limitation**: The payment-provider schema could not be validated because its source file is unavailable.
+  - **Next action**: Provide the payment-provider schema to complete validation.
 ```
 
-Example:
-
-```md
-- **Summary**: Validated 12 API schemas; 10 passed and 2 require review.
-- **Limitation**: The payment-provider schema could not be validated because its source file is unavailable.
-- **Next action**: Provide the payment-provider schema to complete validation.
-```
-
-Context Output MUST NOT be persisted or used as a downstream-job handoff.
+The `Summary`, `Limitation`, and `Next action` entries above are a concrete Context Output extension. They supplement the mandatory artifact links within the same job group.
 
 On successful completion, the agent MUST report:
 

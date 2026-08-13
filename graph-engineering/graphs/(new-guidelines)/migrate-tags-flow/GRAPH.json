@@ -3,7 +3,7 @@
   "version": "1.0",
   "example-prompts": [
     "Execute the migrate-tags-flow graph.",
-    "Run the migrate-tags-flow graph for apps/page.tsx."
+    "Run the migrate-tags-flow graph for app\\(landing-page)\\page.tsx. Domain home-journey."
   ],
   "initial": "read-documentation",
   "jobs": {
@@ -33,7 +33,7 @@
     "improve-job": {
       "instructions": [
         "Halt execution and ask for user confirmation to run this job",
-        "Use run/job-improvements as the domain name."
+        "Use job-improvements as the domain name."
       ],
       "onDone": "complete",
       "onError": "abort"

@@ -66,9 +66,7 @@ A job MAY produce a Project Output, a Managed Output, or both. Every successfull
 
 - **Project Output**: Creates or modifies repository files directly (such as source code, configuration files, tests, or generated directory structures).
 - **Managed Output**: Creates a persisted Markdown document artifact produced by a run, stored at `.{local-skill-folder}/runs/<domain>/<job-name>/OUTPUT-timestamp.md`.
-- **Context Output**: A non-persisted message directed to the user. It MUST list links to every Project Output created or modified and every Managed Output generated during the current job execution, grouped by the producing job's logical identifier. When the job generates or modifies no file artifacts, it MUST explicitly state that no file artifacts were generated.
-
-A job MAY define additional Context Output requirements in its `JOB.md`. Those requirements MUST extend the mandatory artifact-link list; they MUST NOT replace it.
+- **Context Output**: A non-persisted message directed to the user. It MUST list links to every Project Output created or modified and every Managed Output generated during the current job execution, grouped by the producing job's logical identifier. When the job generates or modifies no file artifacts, it MUST explicitly state that no file artifacts were generated. A job MAY define additional Context Output requirements in its `JOB.md`. Those requirements MUST extend the mandatory artifact-link list; they MUST NOT replace it. Local links in Context Output MUST use normalized absolute paths with `/` as the separator, for example `[Artifact](C:/Users/.../artifact.md)`. Markdown link destinations MUST NOT use `\` separators.
 
 ## Executing jobs
 
