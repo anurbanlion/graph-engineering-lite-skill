@@ -11,9 +11,7 @@
       "onError": "abort"
     },
     "migrate-page-to-app-router": {
-      "instructions": [
-        ""
-      ],
+      "instructions": [""],
       "onDone": "migrate-page-organisms-to-app-router",
       "onError": "abort"
     },
