@@ -1,0 +1,325 @@
+#!/usr/bin/env python3
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+CHANGED_FILES = []
+PATCH_REPORTS = []
+TOKEN_RE = re.compile(r'\{\{CHR:(\d+)\}\}')
+
+# Encoded tokens are decoded by default. Use ` for a backtick, " for a double quote, and \ for a backslash.
+
+def decode_tokens(text):
+    def replace(match):
+        value = int(match.group(1))
+        if value < 0 or value > 0x10FFFF:
+            raise ValueError('Invalid CHR token: ' + match.group(0))
+        return chr(value)
+    return TOKEN_RE.sub(replace, text)
+
+def run_capture(args, **kwargs):
+    return subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, **kwargs)
+
+def track_changed(path):
+    value = str(path)
+    if value not in CHANGED_FILES:
+        CHANGED_FILES.append(value)
+
+def extract_unified_patch_paths(decoded):
+    paths = []
+    for line in decoded.splitlines():
+        if not line.startswith('+++ '):
+            continue
+        path = line[4:].split('\t', 1)[0]
+        if path == '/dev/null':
+            continue
+        if path.startswith('b/'):
+            path = path[2:]
+        if path not in paths:
+            paths.append(path)
+    return paths
+
+def extract_assisted_patch_paths(decoded):
+    paths = []
+    marker = '*** Update File: '
+    for line in decoded.splitlines():
+        if not line.startswith(marker):
+            continue
+        path = line[len(marker):]
+        if path not in paths:
+            paths.append(path)
+    return paths
+
+def validate_single_patch_target(decoded):
+    if decoded.lstrip().startswith('*** Begin Patch'):
+        paths = extract_assisted_patch_paths(decoded)
+    else:
+        paths = extract_unified_patch_paths(decoded)
+
+    if len(paths) > 1:
+        print('Multiple files are not allowed per apply_patch invocation.', file=sys.stderr)
+        return 1
+    return 0
+
+def print_report(status):
+    print('\nChanged files:')
+    if CHANGED_FILES:
+        for path in CHANGED_FILES:
+            print('M  ' + path)
+    else:
+        print('Not tracked')
+
+    if PATCH_REPORTS:
+        print('\nPatch reports:')
+        for path in PATCH_REPORTS:
+            print(path)
+
+    print('\nCommand exit status:', status)
+
+
+
+def write_patch_report(decoded):
+    reports_dir = Path('.patch-reports')
+    reports_dir.mkdir(exist_ok=True)
+    timestamp = run_capture(['date', '-u', '+%Y%m%dT%H%M%SZ']).stdout.strip()
+    report_text = decoded if decoded.endswith(chr(10)) else decoded + chr(10)
+    latest = reports_dir / 'latest.patch'
+    timestamped = reports_dir / (timestamp + '.patch')
+    latest.write_text(report_text)
+    timestamped.write_text(report_text)
+    PATCH_REPORTS.extend([str(latest), str(timestamped)])
+    print('Patch report: ' + str(latest))
+    print('Patch report timestamped: ' + str(timestamped))
+
+def parse_assisted_hunk(hunk):
+    old = []
+    new = []
+    has_change = False
+    for line in hunk:
+        if line.startswith(" "):
+            old.append(line[1:])
+            new.append(line[1:])
+        elif line.startswith("-"):
+            old.append(line[1:])
+            has_change = True
+        elif line.startswith("+"):
+            new.append(line[1:])
+            has_change = True
+        else:
+            print("Invalid assisted patch line: " + line, file=sys.stderr)
+            return None, None, None, 2
+
+    return chr(10).join(old), chr(10).join(new), has_change, 0
+
+def apply_assisted_hunks(path, hunks):
+    text = path.read_text() if path.exists() else ""
+    cursor = 0
+
+    for hunk in hunks:
+        old_text, new_text, has_change, status = parse_assisted_hunk(hunk)
+        if status != 0:
+            return status
+
+        index = text.find(old_text, cursor)
+        if index == -1:
+            print("Expected one match in " + str(path) + " after cursor " + str(cursor) + ", found 0", file=sys.stderr)
+            return 1
+
+        if has_change:
+            text = text[:index] + new_text + text[index + len(old_text):]
+            cursor = index + len(new_text)
+        else:
+            cursor = index + len(old_text)
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+    track_changed(path)
+    return 0
+
+def apply_assisted_patch(decoded):
+    lines = decoded.splitlines()
+    if not lines or lines[0] != "*** Begin Patch":
+        print("Assisted patch must start with *** Begin Patch", file=sys.stderr)
+        return 2
+
+    path = None
+    hunk = None
+    hunks = []
+
+    def flush_hunk():
+        nonlocal hunk
+        if hunk is not None:
+            hunks.append(hunk)
+            hunk = None
+
+    def flush_file():
+        nonlocal path, hunks
+        flush_hunk()
+        if path is None:
+            return 0
+        status = apply_assisted_hunks(path, hunks)
+        path = None
+        hunks = []
+        return status
+
+    for line in lines[1:]:
+        if line == "*** End Patch":
+            return flush_file()
+        if line.startswith("*** Update File: "):
+            status = flush_file()
+            if status != 0:
+                return status
+            path = Path(line[len("*** Update File: "):])
+            continue
+        if line == "@@":
+            if path is None:
+                print("Assisted patch hunk has no file", file=sys.stderr)
+                return 2
+            flush_hunk()
+            hunk = []
+            continue
+        if hunk is None:
+            print("Expected *** Update File or @@, got: " + line, file=sys.stderr)
+            return 2
+        hunk.append(line)
+
+    print("Assisted patch must end with *** End Patch", file=sys.stderr)
+    return 2
+
+
+
+def parse_prepared_command(command):
+    parts = command.split()
+    if len(parts) < 4 or parts[0] != "read" or len(parts[2:]) % 2 != 0:
+        print("Usage: read path start end [start end ...]", file=sys.stderr)
+        return None, None, 2
+
+    ranges = []
+    for index in range(2, len(parts), 2):
+        try:
+            start = int(parts[index])
+            end = int(parts[index + 1])
+        except ValueError:
+            print("Prepared patch ranges must be integers.", file=sys.stderr)
+            return None, None, 2
+        if start < 1 or end < start:
+            print("Prepared patch ranges must be 1-based and ordered.", file=sys.stderr)
+            return None, None, 2
+        ranges.append((start, end))
+
+    return Path(parts[1]), ranges, 0
+
+def build_prepared_template(path, ranges):
+    if not path.exists():
+        if len(ranges) != 1 or ranges[0] != (1, 1):
+            print("New file prepared patches must use: read path 1 1", file=sys.stderr)
+            return None, None, 1
+        hunks = [[]]
+    else:
+        lines = path.read_text().splitlines()
+        hunks = []
+        for start, end in ranges:
+            if end > len(lines):
+                print("Prepared patch range exceeds file length for " + str(path), file=sys.stderr)
+                return None, None, 1
+            hunk = []
+            for line in lines[start - 1:end]:
+                hunk.append("-" + line)
+            hunks.append(hunk)
+
+    patch_lines = ["*** Begin Patch", "*** Update File: " + str(path)]
+    for hunk in hunks:
+        patch_lines.append("@@")
+        patch_lines.extend(hunk)
+    patch_lines.append("*** End Patch")
+    return hunks, chr(10).join(patch_lines) + chr(10), 0
+
+def parse_prepared_new_hunks(raw):
+    hunks = []
+    hunk = None
+    for line in raw.splitlines():
+        if not line.strip():
+            continue
+        if line == "@@":
+            if hunk is not None:
+                hunks.append(hunk)
+            hunk = []
+            continue
+        if hunk is None:
+            print("Prepared patch additions must start with @@.", file=sys.stderr)
+            return None, 2
+        if not line.startswith("+"):
+            print("Prepared patch additions must contain only plus lines.", file=sys.stderr)
+            return None, 2
+        hunk.append(line)
+
+    if hunk is not None:
+        hunks.append(hunk)
+    return hunks, 0
+
+def run_prepared_patch(args):
+    if args:
+        command = " ".join(args)
+    else:
+        command = sys.stdin.readline().strip()
+
+    path, ranges, status = parse_prepared_command(command)
+    if status != 0:
+        return status
+
+    old_hunks, template, status = build_prepared_template(path, ranges)
+    if status != 0:
+        return status
+
+    print(template, end="")
+    sys.stdout.flush()
+
+    new_hunks, status = parse_prepared_new_hunks(sys.stdin.read())
+    if status != 0:
+        return status
+    if len(new_hunks) != len(old_hunks):
+        print("Prepared patch hunk count mismatch: expected " + str(len(old_hunks)) + ", got " + str(len(new_hunks)), file=sys.stderr)
+        return 1
+
+    patch_lines = ["*** Begin Patch", "*** Update File: " + str(path)]
+    for old_hunk, new_hunk in zip(old_hunks, new_hunks):
+        patch_lines.append("@@")
+        patch_lines.extend(old_hunk)
+        patch_lines.extend(new_hunk)
+    patch_lines.append("*** End Patch")
+    merged_patch = chr(10).join(patch_lines) + chr(10)
+
+    status = validate_single_patch_target(merged_patch)
+    if status != 0:
+        return status
+    write_patch_report(merged_patch)
+    return apply_assisted_patch(merged_patch.strip())
+
+def command_name():
+    return sys.argv[0]
+
+def run_command(args):
+    if not args:
+        print('Usage: ' + command_name() + ' -- command args...', file=sys.stderr)
+        return 2
+    decoded_args = [decode_tokens(arg) for arg in args]
+    return subprocess.run(decoded_args).returncode
+
+def usage():
+    return 'Usage: ' + command_name() + ' OR ' + command_name() + ' -- command args...'
+
+def main():
+    if len(sys.argv) == 1:
+        status = run_prepared_patch([])
+    elif sys.argv[1] == '--':
+        status = run_command(sys.argv[2:])
+    else:
+        print(usage(), file=sys.stderr)
+        status = 2
+
+    print_report(status)
+    return status
+
+if __name__ == '__main__':
+    raise SystemExit(main())
