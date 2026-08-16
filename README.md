@@ -119,24 +119,27 @@ The scripts inside `graph-engineering` support discovery, reading, validation, o
 
 ## Folder synchronization pipeline
 
-The synchronization pipeline copies the local `graph-engineering` folder into a configured Codex skills directory. It is intended for maintaining the skill in this repository and publishing the latest local version into another project without manually deleting and copying folders.
+The synchronization pipeline copies local skill folders and support files into one or more configured Codex skills roots. It is intended for maintaining this repository as the source of truth and publishing the latest local versions without manually deleting and copying files.
 
 The pipeline consists of:
 
-- `bin/sync-folder.mjs`: reads configuration, validates paths, replaces each destination, creates directories, and copies recursively.
+- `bin/sync-folder.mjs`: reads configuration, validates paths, replaces each resolved destination entry, creates directories, and copies files or folders.
 - `bin/sync-folder.sh`: macOS/Linux wrapper.
 - `bin/sync-folder.bat`: Windows wrapper.
+- `scripts/node`: WSL-friendly Node.js resolver used by the shell wrapper.
 
 ### Configuration
 
 Copy `.env.example` to `.env` in the repository root and configure the paths:
 
 ```env
-SYNC_SOURCE_PATH=graph-engineering
-SYNC_DESTINATION_PATH=["C:\\path\\to\\project-a\\.codex\\skills\\graph-engineering","C:\\path\\to\\project-b\\.codex\\skills\\graph-engineering"]
+SYNC_SOURCE_PATH=["graph-engineering","desktop-wsl-apply-patch",{"path":"AGENTS.md","destinationName":"AGENTS.base.md"}]
+SYNC_DESTINATION_PATH=/absolute/path/to/project/.codex/skills
 ```
 
-`SYNC_SOURCE_PATH` may be relative to the repository root or absolute. `SYNC_DESTINATION_PATH` accepts either one absolute path or a JSON array of absolute paths. Each path identifies the exact folder that will be replaced by the source folder; destination paths must be distinct and must not contain one another.
+`SYNC_SOURCE_PATH` may be one relative or absolute path, or a JSON array of path entries. A source entry may also be an object with `path` and `destinationName` when the copied file or folder needs a different destination name. This is useful for copying this repository's `AGENTS.md` as `AGENTS.base.md`, so a target project can merge the base guidance without overwriting its own `AGENTS.md`.
+
+`SYNC_DESTINATION_PATH` accepts either one absolute destination root or a JSON array of absolute destination roots. Each source is copied under each destination root using its source basename or configured `destinationName`. Existing resolved destination entries are replaced, but the destination root itself is not deleted.
 
 All failures are printed to standard error and return a non-zero exit code.
 
@@ -148,7 +151,7 @@ All failures are printed to standard error and return a non-zero exit code.
 chmod +x bin/sync-folder.sh
 ```
 
-2. Review `.env` file for correct paths. 
+2. Review `.env` file for correct paths.
 
 3. Run the wrapper for your platform:
 
@@ -160,7 +163,7 @@ chmod +x bin/sync-folder.sh
 bin\sync-folder.bat
 ```
 
-Each destination folder is replaced completely on each successful run. Changes already present only in a destination folder are therefore deleted.
+Each resolved destination entry is replaced completely on each successful run. Changes already present only in a resolved destination entry are therefore deleted.
 
 # TODO
 

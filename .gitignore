@@ -1,6 +1,8 @@
-
 # graphify-axet
 .graphify/
 
-.graph-engineering
+# project artifacts
 .env
+.codex/
+.graph-engineering/
+.patch-reports/

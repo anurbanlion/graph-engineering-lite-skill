@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { access, cp, mkdir, readFile, rm, stat } from "node:fs/promises";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { constants } from "node:fs";
-import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
@@ -77,48 +77,93 @@ async function readConfiguration() {
     fail("SYNC_DESTINATION_PATH MUST be set in .env");
   }
 
-  return { sourcePathValue, destinationPathValues: parseDestinationPaths(destinationPathValue) };
+  return {
+    sourceEntries: parseSourceEntries(sourcePathValue),
+    destinationPathValues: parseDestinationPaths(destinationPathValue),
+  };
+}
+
+function parseJsonArray(value, variableName) {
+  let parsed;
+
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    fail(`${variableName} MUST be a path or a JSON array`);
+  }
+
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    fail(`${variableName} JSON array MUST contain one or more entries`);
+  }
+
+  return parsed;
+}
+
+function parseSourceEntry(entry) {
+  if (typeof entry === "string") {
+    const path = entry.trim();
+
+    if (!path) {
+      fail("SYNC_SOURCE_PATH entries MUST be non-empty paths");
+    }
+
+    return { path, destinationName: basename(path) };
+  }
+
+  if (entry && typeof entry === "object" && !Array.isArray(entry)) {
+    const path = typeof entry.path === "string" ? entry.path.trim() : "";
+    const destinationName =
+      typeof entry.destinationName === "string" ? entry.destinationName.trim() : basename(path);
+
+    if (!path) {
+      fail("SYNC_SOURCE_PATH object entries MUST include a non-empty path");
+    }
+
+    if (!destinationName || destinationName.includes("/") || destinationName.includes("\\")) {
+      fail(`SYNC_SOURCE_PATH destinationName MUST be a single file or folder name: ${destinationName}`);
+    }
+
+    return { path, destinationName };
+  }
+
+  fail("SYNC_SOURCE_PATH JSON array entries MUST be paths or objects with path and destinationName");
+}
+
+// Accept a single source for compatibility, or a JSON array for multi-source syncs.
+function parseSourceEntries(value) {
+  const entries = value.startsWith("[") ? parseJsonArray(value, "SYNC_SOURCE_PATH") : [value];
+  return entries.map(parseSourceEntry);
 }
 
 // Accept a single destination for compatibility, or a JSON array for fan-out syncs.
 function parseDestinationPaths(value) {
-  if (!value.startsWith("[")) {
-    return [value];
-  }
+  const destinations = value.startsWith("[") ? parseJsonArray(value, "SYNC_DESTINATION_PATH") : [value];
 
-  let destinations;
-
-  try {
-    destinations = JSON.parse(value);
-  } catch {
-    fail("SYNC_DESTINATION_PATH MUST be an absolute path or a JSON array of absolute paths");
-  }
-
-  if (
-    !Array.isArray(destinations) ||
-    destinations.length === 0 ||
-    destinations.some((destination) => typeof destination !== "string" || !destination.trim())
-  ) {
-    fail("SYNC_DESTINATION_PATH JSON array MUST contain one or more non-empty paths");
+  if (destinations.some((destination) => typeof destination !== "string" || !destination.trim())) {
+    fail("SYNC_DESTINATION_PATH entries MUST be non-empty paths");
   }
 
   return destinations.map((destination) => destination.trim());
 }
 
-// Require an existing directory and explain whether it is missing or invalid.
-async function requireDirectory(path, label) {
+async function requireExistingPath(path, label) {
   try {
-    const pathStat = await stat(path);
-
-    if (!pathStat.isDirectory()) {
-      fail(`${label} is not a directory: ${path}`);
-    }
+    return await stat(path);
   } catch (error) {
     if (error?.code === "ENOENT") {
       fail(`${label} does not exist: ${path}`);
     }
 
     throw error;
+  }
+}
+
+// Require an existing directory and explain whether it is missing or invalid.
+async function requireDirectory(path, label) {
+  const pathStat = await requireExistingPath(path, label);
+
+  if (!pathStat.isDirectory()) {
+    fail(`${label} is not a directory: ${path}`);
   }
 }
 
@@ -148,79 +193,113 @@ function isInside(parentPath, childPath) {
   );
 }
 
+function resolveSourcePath(sourcePathValue) {
+  return isAbsolute(sourcePathValue)
+    ? resolve(sourcePathValue)
+    : resolve(repositoryDirectory, sourcePathValue);
+}
+
+function resolveDestinationRoot(destinationPathValue) {
+  if (!isAbsolute(destinationPathValue)) {
+    fail(`SYNC_DESTINATION_PATH MUST be absolute: ${destinationPathValue}`);
+  }
+
+  return resolve(destinationPathValue);
+}
+
+function validateDistinctPaths(paths, message) {
+  for (let index = 0; index < paths.length; index += 1) {
+    for (let otherIndex = index + 1; otherIndex < paths.length; otherIndex += 1) {
+      const path = paths[index];
+      const otherPath = paths[otherIndex];
+
+      if (path === otherPath || isInside(path, otherPath) || isInside(otherPath, path)) {
+        fail(message);
+      }
+    }
+  }
+}
+
 async function syncFolder() {
   if (process.argv.length > 2) {
     fail("this script does not accept arguments; configure .env in the repository root");
   }
 
-  const { sourcePathValue, destinationPathValues } = await readConfiguration();
-  const sourcePath = isAbsolute(sourcePathValue)
-    ? resolve(sourcePathValue)
-    : resolve(repositoryDirectory, sourcePathValue);
+  const { sourceEntries, destinationPathValues } = await readConfiguration();
+  const sources = [];
 
-  const destinationPaths = destinationPathValues.map((destinationPathValue) => {
-    if (!isAbsolute(destinationPathValue)) {
-      fail(`SYNC_DESTINATION_PATH MUST be absolute: ${destinationPathValue}`);
-    }
+  for (const sourceEntry of sourceEntries) {
+    const sourcePath = resolveSourcePath(sourceEntry.path);
+    const sourceStat = await requireExistingPath(sourcePath, "source path");
 
-    return resolve(destinationPathValue);
-  });
-
-  // Step 3: validate the source before modifying the destination.
-  await requireDirectory(sourcePath, "source folder");
-
-  // Prevent destructive configurations that could remove the source itself.
-  for (const destinationPath of destinationPaths) {
-    if (sourcePath === destinationPath) {
-      fail("source and destination resolve to the same folder");
-    }
-
-    if (isInside(destinationPath, sourcePath)) {
-      fail("source folder is inside the destination folder; deleting the destination would remove the source");
-    }
-
-    if (isInside(sourcePath, destinationPath)) {
-      fail("destination folder must not be inside the source folder");
-    }
+    sources.push({ ...sourceEntry, sourcePath, isDirectory: sourceStat.isDirectory() });
   }
 
-  for (let index = 0; index < destinationPaths.length; index += 1) {
-    for (let otherIndex = index + 1; otherIndex < destinationPaths.length; otherIndex += 1) {
-      const destinationPath = destinationPaths[index];
-      const otherDestinationPath = destinationPaths[otherIndex];
+  validateDistinctPaths(
+    sources.map((source) => source.sourcePath),
+    "source paths MUST be distinct and MUST NOT contain one another",
+  );
 
-      if (
-        destinationPath === otherDestinationPath ||
-        isInside(destinationPath, otherDestinationPath) ||
-        isInside(otherDestinationPath, destinationPath)
-      ) {
-        fail("destination paths MUST be distinct and MUST NOT contain one another");
+  const destinationRoots = destinationPathValues.map(resolveDestinationRoot);
+  validateDistinctPaths(
+    destinationRoots,
+    "destination paths MUST be distinct and MUST NOT contain one another",
+  );
+
+  const plannedCopies = [];
+  const plannedDestinationPaths = [];
+
+  for (const destinationRoot of destinationRoots) {
+    for (const source of sources) {
+      const destinationPath = resolve(destinationRoot, source.destinationName);
+
+      if (!isInside(destinationRoot, destinationPath)) {
+        fail(`resolved destination MUST stay inside destination root: ${destinationPath}`);
       }
+
+      for (const otherSource of sources) {
+        if (destinationPath === otherSource.sourcePath || isInside(destinationPath, otherSource.sourcePath)) {
+          fail("destination path must not contain a source path");
+        }
+
+        if (isInside(otherSource.sourcePath, destinationPath)) {
+          fail("destination path must not be inside a source path");
+        }
+      }
+
+      plannedCopies.push({ ...source, destinationRoot, destinationPath });
+      plannedDestinationPaths.push(destinationPath);
     }
   }
 
-  for (const destinationPath of destinationPaths) {
-    // Remove each destination only after every configured path has been validated.
-    if (await pathExists(destinationPath)) {
-      await requireDirectory(destinationPath, "destination folder");
-      await rm(destinationPath, { recursive: true, force: false });
+  validateDistinctPaths(
+    plannedDestinationPaths,
+    "resolved destination paths MUST be distinct and MUST NOT contain one another",
+  );
+
+  for (const destinationRoot of destinationRoots) {
+    await mkdir(destinationRoot, { recursive: true });
+    await requireDirectory(destinationRoot, "destination root");
+  }
+
+  for (const plannedCopy of plannedCopies) {
+    if (await pathExists(plannedCopy.destinationPath)) {
+      await rm(plannedCopy.destinationPath, { recursive: true, force: false });
     }
 
-    await mkdir(dirname(destinationPath), { recursive: true });
-
-    await cp(sourcePath, destinationPath, {
-      recursive: true,
+    await mkdir(dirname(plannedCopy.destinationPath), { recursive: true });
+    await cp(plannedCopy.sourcePath, plannedCopy.destinationPath, {
+      recursive: plannedCopy.isDirectory,
       errorOnExist: false,
       force: true,
       preserveTimestamps: true,
     });
   }
 
-  // Step 7: report the completed synchronization and resolved folder paths.
-  console.log("Folder synchronized successfully.");
-  console.log(`Source: ${sourcePath}`);
-  for (const destinationPath of destinationPaths) {
-    console.log(`Destination: ${destinationPath}`);
+  console.log("Sources synchronized successfully.");
+  for (const plannedCopy of plannedCopies) {
+    console.log(`Source: ${plannedCopy.sourcePath}`);
+    console.log(`Destination: ${plannedCopy.destinationPath}`);
   }
 }
 

@@ -1,5 +1,3 @@
-- You MUST treat `graph-engineering` folder as a skill, that is, you must load its SKILL.md file in every session.
-
 # Instructions style
 
 - Every instruction written in this file MUST use RFC 2119 language. The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY in this file are to be interpreted as described by RFC 2119.
