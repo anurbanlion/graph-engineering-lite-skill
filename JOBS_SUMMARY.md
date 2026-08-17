@@ -54,3 +54,11 @@
 * **Input:** A journey identifier and use cases to implement.
 * **Output:** Code files created at `apps/storefront/apis/[journey]/infrastructure/repository/...` and `apps/storefront/apis/[journey]/application/use-cases/...`.
 
+---
+
+## `add-tasks`
+* **Objective:** Transform free-form initiative ideas into a Markdown task list with actionable tasks, execution responsibility, and duration estimates.
+* **Input:** A kebab-case domain identifier and source context with task ideas/notes (optionally existing tasks).
+* **Output:** Markdown task list managed output.
+
+
