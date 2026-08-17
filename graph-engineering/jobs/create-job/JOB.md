@@ -24,7 +24,7 @@ The job MUST receive at least one of the following:
 **2. Job Specification Assembly**
 
 1. The agent MUST structure the job definition using RFC-style normative keywords (`MUST`, `MUST NOT`, `SHOULD`, `MAY`).
-2. The agent MUST assign a kebab-case directory name and human-readable title.
+2. The agent MUST assign a kebab-case directory name and human-readable title. If a target group is specified, the agent MUST place the job directory inside that group folder using parenthesized naming conventions (e.g. `graph-engineering/jobs/(<group>)/<job-name>/JOB.md`).
 3. The agent MUST identify whether the job produces Project Output, Managed Output, or both. The agent MUST treat Context Output as mandatory for every successfully completed job and MAY define an extension only when the job must report user-facing information beyond the mandatory artifact links.
 4. The agent MUST populate all required sections (`Objective`, `Inputs`, `Process`, `Output`, and `Prompt examples`).
 
@@ -34,6 +34,10 @@ The job MUST receive at least one of the following:
    ```txt
    graph-engineering/jobs/<job-name>/JOB.md
    ```
+   or, when assigned to a group:
+   ```txt
+   graph-engineering/jobs/(<group>)/<job-name>/JOB.md
+   ```
 2. The agent MUST verify that the generated job matches the structure retrieved by `node scripts/read-job-template.mjs` or `graph-engineering/templates/job-template.md`.
 3. The agent MUST verify that any Context Output extension supplements the skill-defined artifact links and does not define persistence or a downstream-job handoff.
 
@@ -41,6 +45,11 @@ The job MUST receive at least one of the following:
 
 The job MUST produce a project code output stored in the repository:
 
+```txt
+graph-engineering/jobs/(<group>)/<job-name>/
+└── JOB.md
+```
+or:
 ```txt
 graph-engineering/jobs/<job-name>/
 └── JOB.md
