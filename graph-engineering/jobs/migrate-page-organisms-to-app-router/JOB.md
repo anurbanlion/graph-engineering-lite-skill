@@ -49,9 +49,22 @@ The agent MUST NOT modify the Pages Router reference, shared organism implementa
 
 1. For each component within the Pages Router reference, the job MUST search the catalog for an equivalent organism.
 2. When an equivalent organism exists, the job MUST replace the legacy component in the target page using the organism's `propsEngine` mechanism, preserve applicable `mt-*` classes in `className`, and add conditional rendering when the corresponding data may be absent.
-3. When no equivalent organism exists, the job MUST preserve the original implementation as a comment in the target page and add the comment `/* No organism found */` to make the missing organism explicit.
+3. When the reference section component supports a prop for nested configuration, the job MUST preserve that configuration on the equivalent organism by passing the nested component's `propsEngine` result through the supported prop. The nested component MUST NOT be rendered or commented separately. The job MUST use this pattern:
 
-- The job MUST apply changes only to the target page and MUST NOT modify the Pages Router reference.
+```tsx
+{props.heroSection && (
+    <HeroBanner
+        {...HeroBanner.propsEngine(props.heroSection)}
+        leadsForm={props.leadsFormModalOptions.content && LeadsFormHeroV2.propsEngine(props.leadsFormModalOptions.content)}
+    />
+)}
+```
+
+4. When no equivalent organism exists for a directly rendered page section component, the job MUST preserve that component's complete JSX invocation as a comment in the target page and include `/* No organism found */` as a comment block. The commented invocation MUST retain its place in the original page order and MUST include analytics imports, event callbacks, and analytics props, but the invocation MUST be fully commented.
+
+* The job MUST apply changes only to the target page and MUST NOT modify the Pages Router reference.
+* The job MUST NOT investigate, classify, or correct TypeScript errors produced by organism `propsEngine` calls, even when those errors appear in the target page during the migration.
+* Any `propsEngine` type error MUST remain outside the job's scope and MUST NOT change the organism migration process or output requirements.
 
 ## Output
 
@@ -91,3 +104,9 @@ Execute migrate-page-organisms-to-app-router with src/shared/components/organism
 ```txt
 Migrate organisms to app/(landing-page)/nuestra-app/page.tsx using src/shared/components/organisms/index.ts and pages/nuestra-app.tsx as the Pages Router reference.
 ```
+
+Execute migrate-page-organisms-to-app-router job.
+
+Organism catalog: src/shared/components/organisms/index.ts
+Target page: app/(landing-page)/tarjeta-de-credito/page.tsx
+Pages Router reference: pages/tarjeta-de-credito-deprecated.tsx
