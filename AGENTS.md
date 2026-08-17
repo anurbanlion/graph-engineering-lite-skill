@@ -2,15 +2,12 @@
 
 - Every instruction written in this file MUST use RFC 2119 language. The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY in this file are to be interpreted as described by RFC 2119.
 
-## Command rules
-
-- Agents MUST NOT run `git push`.
-
 ## Collaboration guardrails
 
 - If files change between assistant responses, agents MUST assume the user made those edits intentionally and MUST preserve those edits and work around them.
 - Agents MUST NOT overwrite or restore earlier structure unless the user explicitly requests it.
 - If those edits block the requested work, agents SHOULD ask for direction before proceeding.
+- Collaboration guardrails MAY require reading the relevant files or ranges before editing when modification tools do not require prior reading, but MUST NOT be interpreted as requiring `git status` or similar repository status commands.
 
 ## Commit suggestions
 
@@ -29,6 +26,15 @@ Example output:
 
 Favorite: `feat(hero-banner): add responsive image metadata` because it best represents the user-visible capability.
 ```
+
+## Codex Desktop WSL workflow
+
+- When running in Codex Desktop and controlling this repository through WSL, agents MUST read the `desktop-wsl-apply-patch` skill before running any repository command.
+- Agents MUST read the `desktop-wsl-apply-patch` skill from the repository root with `wsl.exe -d Ubuntu-26.04 -- cat .codex/skills/desktop-wsl-apply-patch/SKILL.md`.
+
+## Command rules
+
+- Agents MUST NOT run `git push`.
 
 # Extra
 
