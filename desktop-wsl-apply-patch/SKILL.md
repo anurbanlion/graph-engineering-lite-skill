@@ -10,7 +10,7 @@ Use this skill when Codex Apps on Windows controls a project that lives in WSL. 
 ## Operating Loop
 
 1. If the target file exists, read the target range with `sed -n -e 'start,end=' -e 'start,endp' path` to choose exact line numbers. If the target file is new, skip `sed`.
-2. Resolve this skill's local folder path, then run `<skill-local-folder>/scripts/apply_patch` for one selected file.
+2. Resolve the skill directory relative to the repository root. The locally installed `<skill-local-folder>/desktop-wsl-apply-patch` directory MUST be preferred over any global installation, then run `<skill-local-folder>/desktop-wsl-apply-patch/scripts/apply_patch` for one selected file.
 
     2.1. Send `read path start end` for an existing file range, or `read path 1 1` for a new file.
 
@@ -52,6 +52,8 @@ wsl.exe -d distro -- sed -n -e '40,55=' -e '40,55p' path
 - Agents MUST use `<skill-local-folder>/scripts/apply_patch` as the only project-file edit path.
 - Agents MUST resolve `<skill-local-folder>` from this skill's installed source location before invoking `scripts/apply_patch`.
 - Agents MUST invoke `<skill-local-folder>/scripts/apply_patch` in an interactive PTY session, because the script reads patch instructions from stdin after startup.
+- Agents MUST send EOF (`Ctrl-D`) after sending the addition hunks so the interactive script applies the patch and exits.
+- Agents MUST verify the patch report and the edited file after sending EOF; if the file is unchanged, agents MUST treat the patch as failed and MUST report an error.
 - Agents MUST use the prepared flow for all file edits: start `<skill-local-folder>/scripts/apply_patch`, send `read path start end`, wait for the removal template, then send matching addition hunks.
 - Agents MUST use `read path 1 1` for new files; the script determines that the file is missing and creates it from the same addition-hunk flow.
 - Agents MUST keep each patch invocation to exactly one project file; this entire flow applies to one edited file at a time.

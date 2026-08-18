@@ -29,8 +29,10 @@ Favorite: `feat(hero-banner): add responsive image metadata` because it best rep
 
 ## Codex Desktop WSL workflow
 
+The locally installed copy of the `desktop-wsl-apply-patch` skill MUST be treated as canonical for this repository. Agents MUST NOT use a global copy of that skill when the locally installed copy exists.
+
 - When running in Codex Desktop and controlling this repository through WSL, agents MUST read the `desktop-wsl-apply-patch` skill before running any repository command.
-- Agents MUST read the `desktop-wsl-apply-patch` skill from the repository root with `wsl.exe -d Ubuntu-26.04 -- cat .codex/skills/desktop-wsl-apply-patch/SKILL.md`.
+- Agents MUST read the `desktop-wsl-apply-patch` skill with `wsl.exe -d Ubuntu-26.04 -- cat <skill-local-folder>/desktop-wsl-apply-patch/SKILL.md`.
 
 ## Command rules
 
