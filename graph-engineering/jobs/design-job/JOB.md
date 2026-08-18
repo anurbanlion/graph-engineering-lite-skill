@@ -147,21 +147,18 @@ EXIT success
 **8. Add Local Designed Job Prompt Example**
 
 1. The agent MUST add a special prompt example under the designed job's `## Prompt examples` section when the designed job is still executed from a local Managed Output.
-2. The special prompt example MUST instruct the user to provide the absolute path to the local designed job file.
-3. The special prompt example MUST instruct the agent to execute the job definition from that file and MUST NOT use a job with the same name from the main skill job repository.
-4. The special prompt example MUST include the designed job's required inputs or representative input examples.
+2. The special prompt example MUST follow the next template for local designed jobs, replacing placeholders with the actual job name and required inputs.
 
-- This state MUST NOT require user validation before transitioning to the next state.
-
-Example:
+Prompt example Example:
 
 ```txt
-Execute `<job-name>` job by loading `design-job` job in Latest mode with domain `<job-name>`. This is a job in progress, so you must not list jobs, execute, or attempt to execute a job with the same name from `<skill-local-folder>/graph-engineering`; although the normal execution rules from `<skill-local-folder>/graph-engineering` still apply.
+Execute `<job-name>` job by loading `design-job` in Latest mode with domain `<job-name>`. This is a job in progress, so you MUST NOT list jobs, execute, or attempt to execute a job with the same name from `<local-skill-folder>/graph-engineering`; although the normal execution rules from `<local-skill-folder>/graph-engineering` still apply.
 
 Inputs:
-- job name: infer-initiatives
-- description: infer which initiative should receive a user's task request
+- [job-specific input or representative input]
 ```
+
+- This state MUST NOT require user validation before transitioning to the next state.
 
 ## Output
 
@@ -229,20 +226,10 @@ On failure, the agent MUST report the missing interview information, unresolved 
 Execute the design-job job to design a job named infer-initiatives.
 ```
 
-```txt
-Execute design-job using this legacy JOB.md draft, but keep the result as a local managed output.
-```
 
 ```txt
-Execute the job definition located at .graph-engineering/runs/design-job/design-job/OUTPUT-20260817-0918.md as a local designed job. 
-
-- Job name: infer-initiatives.
-```
-
-```txt
-Execute `<job-name>` job by loading `design-job` job in Latest mode with domain `<job-name>`. This is a job in progress, so you must not list jobs, execute, or attempt to execute a job with the same name from `<skill-local-folder>/graph-engineering`; although the normal execution rules from `<skill-local-folder>/graph-engineering` still apply.
+Execute `design-job` job by loading `design-job` in Latest mode with domain `design-job`. This is a job in progress, so you MUST NOT list jobs, execute, or attempt to execute a job with the same name from `<local-skill-folder>/graph-engineering`; although the normal execution rules from `<local-skill-folder>/graph-engineering` still apply.
 
 Inputs:
-- job name: infer-initiatives
-- description: infer which initiative should receive a user's task request
+- [job-specific input or representative input]
 ```
