@@ -59,6 +59,7 @@
 ## `add-tasks`
 * **Objective:** Transform free-form initiative ideas into a Markdown task list with actionable tasks, execution responsibility, and duration estimates.
 * **Input:** A kebab-case domain identifier and source context with task ideas/notes (optionally existing tasks).
-* **Output:** Markdown task list managed output.
+* **Output:** Markdown task artifact managed output (task list, optional References and Transformation pointers).
+
 
 

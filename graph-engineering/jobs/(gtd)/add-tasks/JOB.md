@@ -2,9 +2,9 @@
 
 ## Objective
 
-The job MUST transform free-form initiative ideas into an agent-centered Markdown task list with actionable tasks, optional one-level subtasks, human-only markers when needed, duration estimates, and task-added timestamps.
+The job MUST transform free-form initiative ideas into an agent-centered Markdown task list with actionable tasks, optional one-level subtasks, execution-context metadata, human-only markers when needed, duration estimates, and task-added timestamps.
 
-The job MUST help a human and an agent understand what can be advanced next, what user input is needed, how large each task is, and when each task was added.
+The job MUST help an agent understand what can be advanced next, where each task should be executed, what user input is needed, how large each task is, and when each task was added.
 
 The job MUST NOT execute tasks, create database rows, create calendar blocks, send communications, or modify repository project files.
 
@@ -60,6 +60,10 @@ context: revisar si ya existe logo, decidir si la landing va primero, e investig
 13. The agent MUST add an `added-at` UNIX timestamp (seconds since epoch) to every newly added task using the current job execution timestamp.
 14. The agent MUST preserve existing `added-at` timestamps during iterative merges.
 15. When preserving an existing task that lacks `added-at`, the agent MUST add the current job execution UNIX timestamp.
+16. The agent MUST add `context: conversation` to tasks that are executed in the active conversation through interviewing, asking, proposing, validating, collecting input, or requesting feedback.
+17. The agent MUST add `context: job` to tasks that require reading, executing, improving, or otherwise using a job; when the exact job is known, the agent SHOULD also add `job: <job-name>` with the logical job identifier.
+18. The agent MAY use `context: skill` for tasks that require a skill rather than a job; when the exact skill is known, the agent SHOULD also add `skill: <skill-name>`.
+19. The agent MUST use another clear `context: <context-name>` value when a task is neither conversation-based, job-based, nor skill-based, and the task title or metadata MUST make the execution setting unambiguous.
 
 Example transformation:
 
@@ -68,23 +72,23 @@ Input: Necesitamos revisar el estado actual de Chiquiarena, decidir la oferta y 
 ```
 
 ```md
-- [ ] Clarify Chiquiarena direction <!-- estimate: 50m; added-at: 1771190400 -->
-  - [ ] Locate current Chiquiarena notes <!-- estimate: 10m; added-at: 1771190400 -->
-  - [ ] Summarize current Chiquiarena status <!-- estimate: 10m; added-at: 1771190400 -->
-  - [ ] Propose possible first offers <!-- estimate: 10m; added-at: 1771190400 -->
-  - [ ] Ask user to choose the first Chiquiarena offer <!-- estimate: 10m; added-at: 1771190400 -->
-  - [ ] Request user decision on whether landing page goes first <!-- estimate: 10m; added-at: 1771190400; human-only: true -->
+- [ ] Clarify Chiquiarena direction <!-- context: conversation; estimate: 50m; added-at: 1771190400 -->
+  - [ ] Locate current Chiquiarena notes <!-- context: conversation; estimate: 10m; added-at: 1771190400 -->
+  - [ ] Summarize current Chiquiarena status <!-- context: conversation; estimate: 10m; added-at: 1771190400 -->
+  - [ ] Propose possible first offers <!-- context: conversation; estimate: 10m; added-at: 1771190400 -->
+  - [ ] Ask user to choose the first Chiquiarena offer <!-- context: conversation; estimate: 10m; added-at: 1771190400 -->
+  - [ ] Request user decision on whether landing page goes first <!-- context: conversation; estimate: 10m; added-at: 1771190400; human-only: true -->
 ```
 
 Example iterative merge:
 
 > Previous tasks
 ```md
-- [ ] Clarify Chiquiarena direction <!-- estimate: 40m; added-at: 1771190400 -->
-  - [ ] Locate current Chiquiarena notes <!-- estimate: 10m; added-at: 1771190400 -->
-  - [ ] Summarize current Chiquiarena status <!-- estimate: 10m; added-at: 1771190400 -->
-  - [ ] Propose possible first offers <!-- estimate: 10m; added-at: 1771190400 -->
-  - [ ] Ask user to choose the first Chiquiarena offer <!-- estimate: 10m; added-at: 1771190400 -->
+- [ ] Clarify Chiquiarena direction <!-- context: conversation; estimate: 40m; added-at: 1771190400 -->
+  - [ ] Locate current Chiquiarena notes <!-- context: conversation; estimate: 10m; added-at: 1771190400 -->
+  - [ ] Summarize current Chiquiarena status <!-- context: conversation; estimate: 10m; added-at: 1771190400 -->
+  - [ ] Propose possible first offers <!-- context: conversation; estimate: 10m; added-at: 1771190400 -->
+  - [ ] Ask user to choose the first Chiquiarena offer <!-- context: conversation; estimate: 10m; added-at: 1771190400 -->
 ```
 
 > Input
@@ -94,18 +98,18 @@ Agrega revisar si ya existe logo e investigar referencias de estructura web.
 
 > Transformation
 ```md
-- [ ] Clarify Chiquiarena direction <!-- estimate: 40m; added-at: 1771190400 -->
-  - [ ] Locate current Chiquiarena notes <!-- estimate: 10m; added-at: 1771190400 -->
-  - [ ] Summarize current Chiquiarena status <!-- estimate: 10m; added-at: 1771190400 -->
-  - [ ] Propose possible first offers <!-- estimate: 10m; added-at: 1771190400 -->
-  - [ ] Ask user to choose the first Chiquiarena offer <!-- estimate: 10m; added-at: 1771190400 -->
-- [ ] Prepare Chiquiarena web direction <!-- estimate: 30m; added-at: 1771276800 -->
-  - [ ] Check whether a Chiquiarena logo already exists <!-- estimate: 10m; added-at: 1771276800 -->
-  - [ ] Collect three reference web structures <!-- estimate: 10m; added-at: 1771276800 -->
-  - [ ] Summarize reference structure patterns <!-- estimate: 10m; added-at: 1771276800 -->
+- [ ] Clarify Chiquiarena direction <!-- context: conversation; estimate: 40m; added-at: 1771190400 -->
+  - [ ] Locate current Chiquiarena notes <!-- context: conversation; estimate: 10m; added-at: 1771190400 -->
+  - [ ] Summarize current Chiquiarena status <!-- context: conversation; estimate: 10m; added-at: 1771190400 -->
+  - [ ] Propose possible first offers <!-- context: conversation; estimate: 10m; added-at: 1771190400 -->
+  - [ ] Ask user to choose the first Chiquiarena offer <!-- context: conversation; estimate: 10m; added-at: 1771190400 -->
+- [ ] Prepare Chiquiarena web direction <!-- context: conversation; estimate: 30m; added-at: 1771276800 -->
+  - [ ] Check whether a Chiquiarena logo already exists <!-- context: conversation; estimate: 10m; added-at: 1771276800 -->
+  - [ ] Collect three reference web structures <!-- context: conversation; estimate: 10m; added-at: 1771276800 -->
+  - [ ] Summarize reference structure patterns <!-- context: conversation; estimate: 10m; added-at: 1771276800 -->
 ```
 
-Example agent-centered reformulation with human-only split:
+Example agent-centered reformulation with job and conversation contexts:
 
 > Input
 ```txt
@@ -114,10 +118,10 @@ Realizar la primera prueba de ejecucion del nuevo servicio y validar la calidad 
 
 > Transformation
 ```md
-- [ ] Prepare and evaluate service trial run <!-- estimate: 30m; added-at: 1771276800 -->
-  - [ ] Ask user for parameters needed for service trial run <!-- estimate: 10m; added-at: 1771276800 -->
-  - [ ] Execute service trial run with provided parameters <!-- estimate: 10m; added-at: 1771276800 -->
-  - [ ] Review trial execution output and give qualitative feedback <!-- estimate: 10m; added-at: 1771276800; human-only: true -->
+- [ ] Prepare and evaluate service trial run <!-- context: conversation; estimate: 30m; added-at: 1771276800 -->
+  - [ ] Ask user for parameters needed for service trial run <!-- context: conversation; estimate: 10m; added-at: 1771276800 -->
+  - [ ] Execute service trial run with provided parameters <!-- context: job; estimate: 10m; added-at: 1771276800 -->
+  - [ ] Review trial execution output and give qualitative feedback <!-- context: conversation; estimate: 10m; added-at: 1771276800; human-only: true -->
 ```
 
 **3. Write Output**
@@ -136,9 +140,12 @@ Output generation and formatting are executed manually by the agent.
 Output format:
 
 ```md
-- [ ] <task title> <!-- estimate: <minutes>m; added-at: <UNIX timestamp> -->
-  - [ ] <child task title> <!-- estimate: <minutes>m; added-at: <UNIX timestamp> -->
-  - [ ] <human-only child task title> <!-- estimate: <minutes>m; added-at: <UNIX timestamp>; human-only: true -->
+- [ ] <task title> <!-- context: conversation | job | skill | <context-name>; estimate: <minutes>m; added-at: <UNIX timestamp> -->
+  - [ ] <conversation child task title> <!-- context: conversation; estimate: <minutes>m; added-at: <UNIX timestamp> -->
+  - [ ] <known-job child task title> <!-- context: job; job: <job-name>; estimate: <minutes>m; added-at: <UNIX timestamp> -->
+  - [ ] <unknown-job child task title> <!-- context: job; estimate: <minutes>m; added-at: <UNIX timestamp> -->
+  - [ ] <known-skill child task title> <!-- context: skill; skill: <skill-name>; estimate: <minutes>m; added-at: <UNIX timestamp> -->
+  - [ ] <human-only child task title> <!-- context: conversation | job | skill | <context-name>; estimate: <minutes>m; added-at: <UNIX timestamp>; human-only: true -->
 
 ## References
 

@@ -12,7 +12,7 @@
 ## Commit suggestions
 
 - Agents MUST suggest commit messages only when the user explicitly requests them.
-- Before suggesting a commit message, agents MUST inspect the relevant Git diff: `git diff --cached` for staged changes and `git diff` for unstaged changes.
+- Before suggesting a commit message, agents MUST inspect the relevant Git diff using strictly `git diff --cached` for staged changes and `git diff` for unstaged changes, and MUST NOT run redundant diff or status commands.
 - Agents MUST provide exactly three proposals using `feat`, `fix`, or `chore`, optionally with a scope.
 - Each proposal MUST follow: `git commit -m "<message>"`.
 - Agents MUST mark one proposal as `Favorite` and explain why in one line.

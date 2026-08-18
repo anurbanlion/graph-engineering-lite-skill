@@ -51,12 +51,14 @@ wsl.exe -d distro -- sed -n -e '40,55=' -e '40,55p' path
 
 - Agents MUST use `<skill-local-folder>/scripts/apply_patch` as the only project-file edit path.
 - Agents MUST resolve `<skill-local-folder>` from this skill's installed source location before invoking `scripts/apply_patch`.
+- Agents MUST invoke `<skill-local-folder>/scripts/apply_patch` in an interactive PTY session, because the script reads patch instructions from stdin after startup.
 - Agents MUST use the prepared flow for all file edits: start `<skill-local-folder>/scripts/apply_patch`, send `read path start end`, wait for the removal template, then send matching addition hunks.
 - Agents MUST use `read path 1 1` for new files; the script determines that the file is missing and creates it from the same addition-hunk flow.
 - Agents MUST keep each patch invocation to exactly one project file; this entire flow applies to one edited file at a time.
 - If multiple files must change, agents MUST run the full flow separately for each file so each file has its own timestamped patch report.
 - Agents MUST NOT edit project files with `sed -i`, `perl -pi`, Python rewrite scripts, shell redirection, or ad hoc wrappers.
 - Agents MUST halt, report the exact failure, and avoid alternate edit paths when any step fails.
+- Agents SHOULD use file names and paths without spaces when working with `apply_patch` `read` command; hyphens or underscores SHOULD be used instead. This is a current limitation of the `apply_patch` tool. If an edit requires a file or path containing spaces, agents MUST stop execution and notify the user.
 
 Example:
 
@@ -97,6 +99,12 @@ wsl.exe -d distro -- <skill-local-folder>/scripts/node .scripts/script.mjs
 - Agents MUST NOT use shell pipes in direct WSL commands; agents MUST run separate commands instead.
 - Agents MUST NOT use escaped quotes inside direct Windows-to-WSL command arguments; escaped quotes can be reinterpreted before reaching WSL. Use simpler patterns instead.
 - Agents MUST use `/mnt/c/...` paths for files outside the project instead of direct PowerShell or UNC reads.
+
+### User-Facing Narration
+
+- Agents MUST keep narration minimal during routine `scripts/apply_patch` operations.
+- Agents MUST announce only meaningful transitions, such as a blocker, a failed patch, a verification issue, or total edit completion.
+- Agents MUST NOT narrate every mechanical stdin step in the prepared patch flow when the operation is proceeding normally.
 
 ## Prepared Patch
 
