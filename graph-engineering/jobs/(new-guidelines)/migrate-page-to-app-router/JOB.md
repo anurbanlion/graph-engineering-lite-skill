@@ -14,10 +14,10 @@ The job MUST receive:
 
 - an App Router target page path;
 - a confirmed legacy page path;
-- a valid landing-page slug for contentful.
 
 The job MAY receive:
 
+- a valid landing-page slug for contentful.
 - App Router page-migration documentation;
 - documented contracts for `getLandingDataV2`, `LandingDataOptions`, and `pageSeoToMetadata`; and
 - explicit metadata, leads-modal, structured-data, or route-behavior constraints.
@@ -42,7 +42,8 @@ The agent MUST NOT modify organism implementations, unrelated routes, or the con
 
 ### Scaffold Path
 
-1. The job MUST receive an App Router target page path, a confirmed legacy page path, and a page slug.
+1. The job MUST receive an App Router target page path, a confirmed legacy page path
+    1.1. `slug` MUST be derived from the legacy page path, if no slug found, halt execution and ask user for a page slug.
 2. The job MUST execute `node /scripts/custom/scaffold-landing-page.mjs <target-page-path> <page-slug>`.
 3. When the script succeeds, the job MUST continue with the New-Page Alignment path. It MUST NOT add hero or section organisms to `LandingPage` during that path.
 4. When the script fails only because the target page already exists, the job MUST continue with the Existing-Page Alignment path. For every other script failure, the job MUST abort and report the error.

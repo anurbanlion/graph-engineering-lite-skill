@@ -43,7 +43,7 @@ context: revisar si ya existe logo, decidir si la landing va primero, e investig
 2. The agent MUST request source context when no task ideas, needs, decisions, goals, or notes are provided.
 3. The agent MUST use existing tasks when they are provided or loaded on context.
 
-**2. Add or Update Tasks**
+**2. Task Formulation and Ownership**
 
 1. The agent MUST convert explicit work into concrete tasks.
 2. The agent MUST prefer agent-centered task formulations that let the agent ask, prepare, propose, execute, inspect, or request feedback instead of assigning broad work to the human.
@@ -54,16 +54,80 @@ context: revisar si ya existe logo, decidir si la landing va primero, e investig
 7. The agent MUST NOT mark agent-operable tasks with a responsibility field; agent execution MUST be the default when no `human-only: true` marker is present.
 8. The agent MUST mark a leaf task with `human-only: true` only when the user is the only party who can complete the task because it requires a private decision, private access, payment, offline action, subjective approval, or personal feedback that cannot be delegated.
 9. The agent SHOULD split mixed human-agent work into agent-operable coordination tasks and narrow `human-only: true` tasks instead of using shared ownership labels.
-10. The agent MUST estimate each leaf task in minutes.
-11. The agent MUST split any leaf task estimated above 10 minutes into smaller leaf tasks.
-12. The agent MUST set each parent estimate to the sum of its child estimates; parent tasks MAY exceed 10 minutes.
-13. The agent MUST add an `added-at` UNIX timestamp (seconds since epoch) to every newly added task using the current job execution timestamp.
-14. The agent MUST preserve existing `added-at` timestamps during iterative merges.
-15. When preserving an existing task that lacks `added-at`, the agent MUST add the current job execution UNIX timestamp.
-16. The agent MUST add `context: conversation` to tasks that are executed in the active conversation through interviewing, asking, proposing, validating, collecting input, or requesting feedback.
-17. The agent MUST add `context: job` to tasks that require reading, executing, improving, or otherwise using a job; when the exact job is known, the agent SHOULD also add `job: <job-name>` with the logical job identifier.
-18. The agent MAY use `context: skill` for tasks that require a skill rather than a job; when the exact skill is known, the agent SHOULD also add `skill: <skill-name>`.
-19. The agent MUST use another clear `context: <context-name>` value when a task is neither conversation-based, job-based, nor skill-based, and the task title or metadata MUST make the execution setting unambiguous.
+10. The agent MUST use the `Clarify tasks for: <target>` prefix for top-level actions that do not have child tasks unless they have a template associated. The `<target>` MUST be an actionable task title that begins with a verb.
+
+Example:
+
+```md
+- [ ] Clarify tasks for: Define payment flow <!-- context: conversation; estimate: 10m; added-at: <UNIX timestamp> -->
+```
+
+**3. Estimates and Timestamps**
+
+1. The agent MUST estimate each leaf task in minutes.
+2. The agent MUST split any leaf task estimated above 10 minutes into smaller leaf tasks.
+3. The agent MUST set each parent estimate to the sum of its child estimates; parent tasks MAY exceed 10 minutes.
+4. The agent MUST add an `added-at` UNIX timestamp (seconds since epoch) to every newly added task using the current job execution timestamp.
+5. The agent MUST preserve existing `added-at` timestamps during iterative merges.
+6. When preserving an existing task that lacks `added-at`, the agent MUST add the current job execution UNIX timestamp.
+
+**4. Context Metadata**
+
+1. The agent MUST add `context: conversation` to tasks that are executed in the active conversation through interviewing, asking, proposing, validating, collecting input, or requesting feedback.
+2. The agent MUST add `context: job` to tasks that require reading, executing, improving, or otherwise using a job; when the exact job is known, the agent SHOULD also add `job: <job-name>` with the logical job identifier.
+3. The agent MAY use `context: skill` for tasks that require a skill rather than a job; when the exact skill is known, the agent SHOULD also add `skill: <skill-name>`.
+4. The agent MUST use another clear `context: <context-name>` value when a task is neither conversation-based, job-based, nor skill-based, and the task title or metadata MUST make the execution setting unambiguous.
+
+**5. References**
+
+1. The agent MUST classify reusable user-provided task behavior as one of: `References`, `Templates`, or `Processing Local Rules`.
+2. The agent MUST place factual context, boundaries, and reusable source notes in `References`.
+
+Example:
+
+```md
+## References
+
+- The legacy Pages Router implementation remains the source of section order.
+```
+
+**6. Templates**
+
+1. The agent MUST place reusable task shapes in `Templates`.
+2. A template MUST include the literal Markdown task shape that agents MUST materialize, including its title, context metadata, estimates, and any child steps.
+3. The agent MUST place constraints for applying a specific template directly below that template without changing its task steps.
+4. The agent MUST keep conditional execution guidance outside the template unless the user explicitly makes it a template step.
+5. When recording a completed template child, the agent MUST preserve the template child's title and metadata exactly; it MAY only change `[ ]` to `[x]` and add `done-at`.
+6. When materializing a child task from a parent/template after completion, the agent MUST inherit the parent/template `added-at` timestamp and record the actual completion time separately as `done-at`.
+7. The agent MUST ensure every template parent estimate equals the sum of its template child estimates; rules and conditional guidance that are not template steps MUST NOT affect that sum.
+
+Example:
+
+```md
+## Templates
+
+- Agents MUST use the following template when creating or executing a task named `analyze-components`:
+
+  - [ ] Analyze components <!-- context: conversation; estimate: 20m -->
+    - [ ] Extract every component and add it as a task <!-- context: conversation; estimate: 10m -->
+    - [ ] Review existing component tasks <!-- context: conversation; estimate: 10m -->
+  - Rules:
+    - Skip a component when an equivalent task already exists.
+```
+
+**7. Processing Local Rules**
+
+1. The agent MUST place task-list custom transformation behavior in `Processing Local Rules`.
+2. The agent MUST preserve user-defined task processing rules when creating generated tasks.
+3. The agent MUST treat user feedback about how task ideas should be transformed as a `Processing Local Rule`.
+
+Example:
+
+```md
+## Processing Local Rules
+
+- Insert generated migration tasks before analysis tasks while retaining prior migration tasks above them.
+```
 
 Example transformation:
 
@@ -124,13 +188,6 @@ Realizar la primera prueba de ejecucion del nuevo servicio y validar la calidad 
   - [ ] Review trial execution output and give qualitative feedback <!-- context: conversation; estimate: 10m; added-at: 1771276800; human-only: true -->
 ```
 
-**3. Write Output**
-
-1. The agent MUST produce a Markdown task artifact containing the task list and MAY include `References` and `Transformation pointers` sections when the source context or user feedback provides content for them.
-2. The agent MUST omit analysis, recommendations, and explanatory sections outside the task list, `References`, and `Transformation pointers` sections.
-3. The agent MUST place `References` after the task list when present.
-4. The agent MUST place `Transformation pointers` as the final section when present.
-
 ## Output
 
 The job MUST produce a Managed Output: one Markdown task artifact for the initiative domain.
@@ -150,6 +207,22 @@ Output format:
 ## References
 
 - <additional information, caveat, source note, or idea fragment related to the tasks>
+
+## Templates
+
+- Agents MUST use the following template when creating or executing a task named `<template-task-name>`:
+
+```md
+- [ ] <literal template task> <!-- context: <context-name>; estimate: <minutes>m -->
+  - [ ] <literal template child step> <!-- context: <context-name>; estimate: <minutes>m -->
+```
+
+- Rules:
+  - <constraint for applying this template without changing its task steps>
+
+## Processing Local Rules
+
+- <rule for transforming or ordering the initiative task list>
 
 ## Transformation pointers
 
