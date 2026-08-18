@@ -116,11 +116,14 @@ Addition hunk shape:
 
 @@
 +new text
++
++new text
 
 Rules:
 
 - Agents MUST send only addition hunks at this point; agents MUST NOT write the old side by hand.
 - Agents MUST prefix each added line with one plus. If the new file line starts with minus (-), the patch line starts with plus then minus (+-).
+- Agents MUST prefix empty lines inside an addition hunk with one plus character as well. A physically blank line MUST NOT appear inside the addition payload.
 - The returned addition hunk count MUST match the printed removal hunk count.
 - Multiple `@@` hunks MAY target the same file, in the same order as the printed template.
 - Agents MUST NOT hand-count unified diff headers.
