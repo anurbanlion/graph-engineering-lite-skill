@@ -53,7 +53,7 @@ The agent MAY modify:
 **2. Resolve Target Task**
 
 1. If `target task` is provided in the input or context, the agent MUST attempt to match it against the pending tasks `[ ]` in `task file content`.
-2. If `target task` is not provided or is not found among the pending tasks `[ ]` in `task file content`, the agent MUST present the list of pending tasks `[ ]` to the user and ask the user to select which task to execute.
+2. If `target task` is not provided or is not found among the pending tasks `[ ]` in `task file content`, the agent MUST present a line-budgeted list of pending tasks `[ ]` to the user (capped at 5 to 10 total lines, counting both parent task lines and child task lines combined) and ask the user to select which task to execute.
 
 **3. Evaluate Execution Constraints**
 
@@ -222,7 +222,7 @@ On successful completion:
 - Executed task title and completion timestamp (`done-at`);
 - File link to `task file path`;
 - Summary of work accomplished or user actions requested;
-- Next suggested pending task in `task file path`.
+- Next suggested pending tasks in `task file path`, capped at a line budget of 5 to 10 lines (counting parent and child task lines combined).
 
 On failure:
 - Reason for failure (e.g. missing input parameters, unresolvable target task, or execution errors).
