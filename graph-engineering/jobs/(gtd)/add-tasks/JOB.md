@@ -2,7 +2,7 @@
 
 ## Objective
 
-The job MUST transform free-form initiative ideas into an agent-centered Markdown task list with actionable tasks, optional one-level subtasks, execution-context metadata, human-only markers when needed, duration estimates, and task-added timestamps.
+The job MUST transform free-form initiative ideas into a Markdown task list with actionable tasks, optional one-level subtasks, context environment tags (`conversation`, `job`, `skill`), execution constraint clause comments (`<!-- USER -->`, `<!-- USER_AUTHORIZATION -->`, `<!-- USER_REVIEW -->`), duration estimates, and creation timestamps (`added-at`).
 
 The job MUST help an agent understand what can be advanced next, where each task should be executed, what user input is needed, how large each task is, and when each task was added.
 
@@ -12,12 +12,12 @@ The job MUST NOT execute tasks, create database rows, create calendar blocks, se
 
 The job MUST receive:
 
-- a kebab-case domain identifier for exactly one initiative;
-- source context with task ideas, needs, decisions, goals, or free-form notes.
+- `domain`: initiative domain name;
+- `source context`: free-form notes, decisions, goals, or task ideas.
 
 The job MAY receive:
 
-- an existing task list for the same initiative.
+- `task file content`: the Markdown task list content dump provided in context.
 
 Examples:
 
@@ -25,36 +25,37 @@ Examples:
 Execute add-tasks job in iterative mode:
 
 domain: chikiarena
-context: Hay que ordenar que se necesita hacer para avanzar Chikiarena: revisar estado actual, definir oferta, validar siguientes pasos.
+task file path: .graph-engineering/runs/chikiarena/add-tasks/OUTPUT-20260819-0601.md
+source context: Hay que ordenar que se necesita hacer para avanzar Chikiarena: revisar estado actual, definir oferta, validar siguientes pasos.
 ```
 
 ```txt
 Execute add-tasks job in iterative mode:
 
 domain: chikiarena
-context: revisar si ya existe logo, decidir si la landing va primero, e investigar referencias de estructura web.
+task file path: .graph-engineering/runs/chikiarena/add-tasks/OUTPUT-20260819-0601.md
+source context: revisar si ya existe logo, decidir si la landing va primero, e investigar referencias de estructura web.
 ```
 
 ## Process
 
 **1. Validate Input**
 
-1. The agent MUST confirm that the domain is kebab-case and represents one initiative.
-2. The agent MUST request source context when no task ideas, needs, decisions, goals, or notes are provided.
-3. The agent MUST use existing tasks when they are provided or loaded on context.
+1. The agent MUST confirm that `domain` is kebab-case and represents one initiative.
+2. The agent MUST request `source context` when no task ideas, needs, decisions, goals, or notes are provided.
+3. If `task file content` is not provided in context and `task file path` exists, the agent MUST read `task file path` using native file viewing tools (`view_file`).
 
 **2. Task Formulation and Ownership**
 
 1. The agent MUST convert explicit work into concrete tasks.
 2. The agent MUST prefer agent-centered task formulations that let the agent ask, prepare, propose, execute, inspect, or request feedback instead of assigning broad work to the human.
 3. When user involvement is needed, the agent MUST first try to formulate the task as an agent action that requests the needed input, decision, authorization, private access, or feedback from the user.
-4. The agent MUST preserve relevant existing tasks and avoid duplicates.
+4. The agent MUST preserve relevant existing tasks, completed statuses `[x]`, timestamps `done-at`, existing task IDs, and `## Templates` definitions without duplicating tasks.
 5. The agent MUST use parent tasks only to group two or more direct subtasks.
 6. The agent MUST NOT create nesting deeper than one parent and one child level.
-7. The agent MUST NOT mark agent-operable tasks with a responsibility field; agent execution MUST be the default when no `human-only: true` marker is present.
-8. The agent MUST mark a leaf task with `human-only: true` only when the user is the only party who can complete the task because it requires a private decision, private access, payment, offline action, subjective approval, or personal feedback that cannot be delegated.
-9. The agent SHOULD split mixed human-agent work into agent-operable coordination tasks and narrow `human-only: true` tasks instead of using shared ownership labels.
-10. The agent MUST use the `Clarify tasks for: <target>` prefix for top-level actions that do not have child tasks unless they have a template associated. The `<target>` MUST be an actionable task title that begins with a verb.
+7. The agent MUST mark tasks requiring human action, authorization, or review with explicit clause comments (`<!-- USER -->`, `<!-- USER_AUTHORIZATION -->`, `<!-- USER_REVIEW -->`) placed at the start of the item.
+8. The agent SHOULD split mixed human-agent work into agent-operable coordination tasks and narrow `<!-- USER -->` clause tasks instead of using shared ownership labels.
+9. The agent MUST use the `Clarify tasks for: <target>` prefix for top-level actions that do not have child tasks unless they have a template associated. The `<target>` MUST be an actionable task title that begins with a verb.
 
 Example:
 
@@ -91,42 +92,10 @@ Example:
 - The legacy Pages Router implementation remains the source of section order.
 ```
 
-**6. Template Execution Contract**
+**6. Template Formulation Contract**
 
-Given a task that matches a template and its template:
-
-```md
-- [ ] Analyze `/nuestra-app-deprecated` components <!-- context: codebase; estimate: 40m; added-at: 1787074732 -->
-
-## Templates
-
-- [ ] Analyze `<route>` components <!-- context: codebase; estimate: 40m -->
-  - [ ] Extract every component and add it as a task: Migrate `<component>` to new guidelines <!-- context: codebase; estimate: 10m -->
-  - [ ] Insert each component-migration task above every analyze task and below the latest existing component-migration tasks <!-- context: codebase; estimate: 10m -->
-```
-
-1. The agent MUST execute the first applicable incomplete template child, materialize it beneath the parent, and record it as completed. The child MUST preserve the template title and metadata, inherit the parent's `added-at`, and receive its actual `done-at` timestamp.
-
-   ```md
-   - [ ] Analyze `/nuestra-app-deprecated` components <!-- context: codebase; estimate: 40m; added-at: 1787074732 -->
-     - [x] Extract every component and add it as a task: Migrate `<component>` to new guidelines <!-- context: codebase; estimate: 10m; added-at: 1787074732; done-at: 1787086129 -->
-   ```
-
-2. The agent MUST execute the next applicable incomplete template child and repeat the same materialization and completion process. The agent MUST materialize a conditional child only when its condition is true; otherwise, it MUST omit that child and report the reason in the Context Output.
-
-   ```md
-   - [ ] Analyze `/nuestra-app-deprecated` components <!-- context: codebase; estimate: 40m; added-at: 1787074732 -->
-     - [x] Extract every component and add it as a task: Migrate `<component>` to new guidelines <!-- context: codebase; estimate: 10m; added-at: 1787074732; done-at: 1787086129 -->
-     - [x] Insert each component-migration task above every analyze task and below the latest existing component-migration tasks <!-- context: codebase; estimate: 10m; added-at: 1787074732; done-at: 1787086130 -->
-   ```
-
-3. The agent MUST mark the parent task as completed only after every applicable template child is completed.
-
-   ```md
-   - [x] Analyze `/nuestra-app-deprecated` components <!-- context: codebase; estimate: 40m; added-at: 1787074732; done-at: 1787086130 -->
-     - [x] Extract every component and add it as a task: Migrate `<component>` to new guidelines <!-- context: codebase; estimate: 10m; added-at: 1787074732; done-at: 1787086129 -->
-     - [x] Insert each component-migration task above every analyze task and below the latest existing component-migration tasks <!-- context: codebase; estimate: 10m; added-at: 1787074732; done-at: 1787086130 -->
-   ```
+1. The agent MUST NOT execute template child steps within `add-tasks`. Task execution, execution constraint evaluation, and template child step materialization during execution are the sole responsibility of `do-tasks`.
+2. The agent MUST formulate reusable task structures into `## Templates` and preserve existing template definitions when adding new tasks.
 
 **7. Templates**
 
@@ -150,32 +119,6 @@ Example:
     - [ ] Review existing component tasks <!-- context: conversation; estimate: 10m -->
   - Rules:
     - Skip a component when an equivalent task already exists.
-```
-
-Example for managing a changed template:
-
-```md
-Old template:
-- [ ] Create the X job
-  - [ ] Old step 1
-  - [ ] Old step 2
-  - [ ] Old step 3
-
-Progress before template change:
-- [ ] Create the X job
-  - [x] Old step 1
-  - [x] Old step 2
-
-New template:
-- [ ] Create the X job
-  - [ ] New step 1
-  - [ ] New step 2
-
-The task MUST restart from the new template:
-- [ ] Create the X job
-  - [x] Old step 1
-  - [x] Old step 2
-  - [x] New step 1
 ```
 
 **8. Processing Local Rules**
@@ -204,7 +147,7 @@ Input: Necesitamos revisar el estado actual de Chiquiarena, decidir la oferta y 
   - [ ] Summarize current Chiquiarena status <!-- context: conversation; estimate: 10m; added-at: 1771190400 -->
   - [ ] Propose possible first offers <!-- context: conversation; estimate: 10m; added-at: 1771190400 -->
   - [ ] Ask user to choose the first Chiquiarena offer <!-- context: conversation; estimate: 10m; added-at: 1771190400 -->
-  - [ ] Request user decision on whether landing page goes first <!-- context: conversation; estimate: 10m; added-at: 1771190400; human-only: true -->
+  - [ ] <!-- USER --> Define whether landing page goes first <!-- context: conversation; estimate: 10m; added-at: 1771190400 -->
 ```
 
 Example iterative merge:
@@ -248,14 +191,12 @@ Realizar la primera prueba de ejecucion del nuevo servicio y validar la calidad 
 - [ ] Prepare and evaluate service trial run <!-- context: conversation; estimate: 30m; added-at: 1771276800 -->
   - [ ] Ask user for parameters needed for service trial run <!-- context: conversation; estimate: 10m; added-at: 1771276800 -->
   - [ ] Execute service trial run with provided parameters <!-- context: job; estimate: 10m; added-at: 1771276800 -->
-  - [ ] Review trial execution output and give qualitative feedback <!-- context: conversation; estimate: 10m; added-at: 1771276800; human-only: true -->
+  - [ ] <!-- USER_REVIEW --> Review trial execution output and give qualitative feedback <!-- context: conversation; estimate: 10m; added-at: 1771276800 -->
 ```
 
 ## Output
 
-The job MUST produce a Managed Output: one Markdown task artifact for the initiative domain.
-
-Output generation and formatting are executed manually by the agent.
+The job MUST modify `task file path` in-place by appending or merging new tasks while preserving existing completed tasks, timestamps, and `## Templates`.
 
 Output format:
 
@@ -265,7 +206,14 @@ Output format:
   - [ ] <known-job child task title> <!-- context: job; job: <job-name>; estimate: <minutes>m; added-at: <UNIX timestamp> -->
   - [ ] <unknown-job child task title> <!-- context: job; estimate: <minutes>m; added-at: <UNIX timestamp> -->
   - [ ] <known-skill child task title> <!-- context: skill; skill: <skill-name>; estimate: <minutes>m; added-at: <UNIX timestamp> -->
-  - [ ] <human-only child task title> <!-- context: conversation | job | skill | <context-name>; estimate: <minutes>m; added-at: <UNIX timestamp>; human-only: true -->
+```
+
+For tasks requiring human interaction:
+
+```md
+- [ ] <!-- USER --> <human child task title> <!-- context: conversation; estimate: <minutes>m; added-at: <UNIX timestamp> -->
+- [ ] <!-- USER_AUTHORIZATION --> <authorization child task title> <!-- context: job; job: <job-name>; estimate: <minutes>m; added-at: <UNIX timestamp> -->
+- [ ] <!-- USER_REVIEW --> <review child task title> <!-- context: conversation; estimate: <minutes>m; added-at: <UNIX timestamp> -->
 
 ## References
 
@@ -292,26 +240,29 @@ Output format:
 - <transformation pointer derived from user feedback or source context>
 ```
 
-On successful completion, the agent MUST report:
+On successful completion:
+- Initiative domain;
+- File link to `task file path`;
+- Number of parent tasks and leaf tasks added;
+- Next suggested pending task in `task file path`.
 
-- the initiative domain;
-- the managed-output file link;
-- the number of parent tasks and leaf tasks added;
-
-On failure, the agent MUST report the missing or invalid domain, missing context, unavailable existing task list, or output-generation error.
+On failure:
+- Reason for failure (e.g. missing or invalid domain, missing source context, unresolvable task file path, or execution error).
 
 ## Prompt examples
 
 ```txt
-Execute add-tasks job in iterative mode, if there is no latest, continue with default execution:
+Execute add-tasks job in iterative mode:
 
 domain: chikiarena
-context: Hay que ordenar que se necesita hacer para avanzar Chikiarena: revisar estado actual, definir oferta, validar siguientes pasos.
+task file path: .graph-engineering/runs/chikiarena/add-tasks/OUTPUT-20260819-0601.md
+source context: Hay que ordenar que se necesita hacer para avanzar Chikiarena: revisar estado actual, definir oferta, validar siguientes pasos.
 ```
 
 ```txt
 Execute add-tasks job in iterative mode:
 
 domain: chikiarena
-context: revisar si ya existe logo, decidir si la landing va primero, e investigar referencias de structure web.
+source context: revisar si ya existe logo, decidir si la landing va primero, e investigar referencias de estructura web.
 ```
+

@@ -152,9 +152,11 @@ EXIT success
 Prompt example Example:
 
 ```txt
-Execute `<job-name>` job by loading `design-job` in Latest mode with domain `<job-name>`. This is a job in progress, so you MUST NOT list jobs, execute, or attempt to execute a job with the same name from `<local-skill-folder>/graph-engineering`; although the normal execution rules from `<local-skill-folder>/graph-engineering` still apply.
+Execute the <job-name> job in two sequential steps:
+1. Load its definition into context by running `design-job` in Latest mode with domain <job-name>.
+2. Immediately proceed to execute <job-name> in Default mode using the loaded process.
 
-Inputs:
+Inputs for <job-name> job:
 - [job-specific input or representative input]
 ```
 
@@ -228,8 +230,10 @@ Execute the design-job job to design a job named infer-initiatives.
 
 
 ```txt
-Execute `design-job` job by loading `design-job` in Latest mode with domain `design-job`. This is a job in progress, so you MUST NOT list jobs, execute, or attempt to execute a job with the same name from `<local-skill-folder>/graph-engineering`; although the normal execution rules from `<local-skill-folder>/graph-engineering` still apply.
+Execute the <job-name> job in two sequential steps:
+1. Load its definition into context by running `design-job` in Latest mode with domain <job-name>.
+2. Immediately proceed to execute <job-name> in Default mode using the loaded process.
 
-Inputs:
+Inputs for <job-name> job:
 - [job-specific input or representative input]
 ```
