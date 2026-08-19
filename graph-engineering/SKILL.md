@@ -161,7 +161,14 @@ A job MAY produce a Project Output, a Managed Output, or both. Every successfull
 
 ## Executing Scripts
 
-- The agent MUST execute skill scripts from the project root using project-relative paths.
+- The agent MUST execute skill scripts from the project root using their project-relative location under `<local-skill-folder>/graph-engineering/scripts/`
+
+Example:
+
+```bash
+node .codex/skills/graph-engineering/scripts/list-jobs.mjs.
+```
+
 - The agent MUST NOT read, inspect, modify, or debug a skill script unless the user explicitly requests it.
 - A script issue includes:
   - A technical failure, such as a non-zero exit code, runtime error, or unavailable command.

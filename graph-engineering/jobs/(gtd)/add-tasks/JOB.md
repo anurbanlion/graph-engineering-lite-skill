@@ -91,7 +91,44 @@ Example:
 - The legacy Pages Router implementation remains the source of section order.
 ```
 
-**6. Templates**
+**6. Template Execution Contract**
+
+Given a task that matches a template and its template:
+
+```md
+- [ ] Analyze `/nuestra-app-deprecated` components <!-- context: codebase; estimate: 40m; added-at: 1787074732 -->
+
+## Templates
+
+- [ ] Analyze `<route>` components <!-- context: codebase; estimate: 40m -->
+  - [ ] Extract every component and add it as a task: Migrate `<component>` to new guidelines <!-- context: codebase; estimate: 10m -->
+  - [ ] Insert each component-migration task above every analyze task and below the latest existing component-migration tasks <!-- context: codebase; estimate: 10m -->
+```
+
+1. The agent MUST execute the first applicable incomplete template child, materialize it beneath the parent, and record it as completed. The child MUST preserve the template title and metadata, inherit the parent's `added-at`, and receive its actual `done-at` timestamp.
+
+   ```md
+   - [ ] Analyze `/nuestra-app-deprecated` components <!-- context: codebase; estimate: 40m; added-at: 1787074732 -->
+     - [x] Extract every component and add it as a task: Migrate `<component>` to new guidelines <!-- context: codebase; estimate: 10m; added-at: 1787074732; done-at: 1787086129 -->
+   ```
+
+2. The agent MUST execute the next applicable incomplete template child and repeat the same materialization and completion process. The agent MUST materialize a conditional child only when its condition is true; otherwise, it MUST omit that child and report the reason in the Context Output.
+
+   ```md
+   - [ ] Analyze `/nuestra-app-deprecated` components <!-- context: codebase; estimate: 40m; added-at: 1787074732 -->
+     - [x] Extract every component and add it as a task: Migrate `<component>` to new guidelines <!-- context: codebase; estimate: 10m; added-at: 1787074732; done-at: 1787086129 -->
+     - [x] Insert each component-migration task above every analyze task and below the latest existing component-migration tasks <!-- context: codebase; estimate: 10m; added-at: 1787074732; done-at: 1787086130 -->
+   ```
+
+3. The agent MUST mark the parent task as completed only after every applicable template child is completed.
+
+   ```md
+   - [x] Analyze `/nuestra-app-deprecated` components <!-- context: codebase; estimate: 40m; added-at: 1787074732; done-at: 1787086130 -->
+     - [x] Extract every component and add it as a task: Migrate `<component>` to new guidelines <!-- context: codebase; estimate: 10m; added-at: 1787074732; done-at: 1787086129 -->
+     - [x] Insert each component-migration task above every analyze task and below the latest existing component-migration tasks <!-- context: codebase; estimate: 10m; added-at: 1787074732; done-at: 1787086130 -->
+   ```
+
+**7. Templates**
 
 1. The agent MUST place reusable task shapes in `Templates`.
 2. A template MUST include the literal Markdown task shape that agents MUST materialize, including its title, context metadata, estimates, and any child steps.
@@ -115,7 +152,33 @@ Example:
     - Skip a component when an equivalent task already exists.
 ```
 
-**7. Processing Local Rules**
+Example for managing a changed template:
+
+```md
+Old template:
+- [ ] Create the X job
+  - [ ] Old step 1
+  - [ ] Old step 2
+  - [ ] Old step 3
+
+Progress before template change:
+- [ ] Create the X job
+  - [x] Old step 1
+  - [x] Old step 2
+
+New template:
+- [ ] Create the X job
+  - [ ] New step 1
+  - [ ] New step 2
+
+The task MUST restart from the new template:
+- [ ] Create the X job
+  - [x] Old step 1
+  - [x] Old step 2
+  - [x] New step 1
+```
+
+**8. Processing Local Rules**
 
 1. The agent MUST place task-list custom transformation behavior in `Processing Local Rules`.
 2. The agent MUST preserve user-defined task processing rules when creating generated tasks.
