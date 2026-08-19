@@ -230,7 +230,11 @@ On failure:
 ## Prompt examples
 
 ```txt
-Execute do-tasks job for domain `gtd-tool` using task file `.graph-engineering/runs/gtd-tool/add-tasks/OUTPUT-20260819-0601.md`.
+Execute `do-tasks` job.
+
+Inputs:
+- domain: gtd-tool
+- task file path: .graph-engineering/runs/gtd-tool/add-tasks/OUTPUT-20260819-0601.md.
 ```
 
 ```txt

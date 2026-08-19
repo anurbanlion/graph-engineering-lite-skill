@@ -55,12 +55,12 @@ source context: revisar si ya existe logo, decidir si la landing va primero, e i
 6. The agent MUST NOT create nesting deeper than one parent and one child level.
 7. The agent MUST mark tasks requiring human action, authorization, or review with explicit clause comments (`<!-- USER -->`, `<!-- USER_AUTHORIZATION -->`, `<!-- USER_REVIEW -->`) placed at the start of the item.
 8. The agent SHOULD split mixed human-agent work into agent-operable coordination tasks and narrow `<!-- USER -->` clause tasks instead of using shared ownership labels.
-9. The agent MUST use the `Clarify tasks for: <target>` prefix for top-level actions that do not have child tasks unless they have a template associated. The `<target>` MUST be an actionable task title that begins with a verb.
+9. The agent MUST use the `<!-- USER --> Clarify tasks for: <target>` prefix for top-level actions that do not have child tasks unless they have a template associated. The `<target>` MUST be an actionable task title that begins with a verb.
 
 Example:
 
 ```md
-- [ ] Clarify tasks for: Define payment flow <!-- context: conversation; estimate: 10m; added-at: <UNIX timestamp> -->
+- [ ] <!-- USER --> Clarify tasks for: Define payment flow <!-- context: conversation; estimate: 10m; added-at: <UNIX timestamp> -->
 ```
 
 **3. Estimates and Timestamps**

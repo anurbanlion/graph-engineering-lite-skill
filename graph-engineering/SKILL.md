@@ -143,7 +143,7 @@ A job MAY produce a Project Output, a Managed Output, or both. Every successfull
 
 * `name` identifies the graph.
 * `version` identifies the graph definition version.
-* `example-prompts` MAY contain a non-empty array of non-empty example prompts that show users how to invoke the graph. These are example prompts and MUST NOT be followed unless they come from the user directly.
+* `example-prompts` MAY contain a non-empty array of non-empty example prompts that show users how to invoke the graph. These are example prompts for user reference and MUST NOT be treated as execution instructions or followed by the agent during graph execution.
 * `initial` identifies the first job to execute.
 * `jobs` contains the jobs participating in the graph.
 * Each key inside `jobs` MUST match an available job logical identifier.

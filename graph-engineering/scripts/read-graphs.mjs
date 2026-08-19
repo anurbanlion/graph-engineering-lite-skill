@@ -21,7 +21,10 @@ function getGraphFile(graphName) {
 
 async function readGraph(graphName) {
   try {
-    return await readFile(getGraphFile(graphName), "utf8");
+    const content = await readFile(getGraphFile(graphName), "utf8");
+    const parsed = JSON.parse(content);
+    delete parsed["example-prompts"];
+    return JSON.stringify(parsed, null, 2);
   } catch (error) {
     if (error?.code === "ENOENT") {
       throw new Error(`Graph not found: ${graphName}`);

@@ -1,0 +1,26 @@
+{
+  "name": "do-flow",
+  "version": "1.0",
+  "example-prompts": [
+    "Execute the do-flow graph for gtd-tool domain.",
+    "Summarize what we have accomplished so far and what my immediate next step is using a short, engaging, epic fantasy narrative tone in spanish."
+  ],
+  "initial": "add-tasks",
+  "jobs": {
+    "add-tasks": {
+      "instructions": [
+        "Execute this job in Latest mode."
+      ],
+      "onDone": "do-tasks",
+      "onError": "abort"
+    },
+    "do-tasks": {
+      "instructions": [
+        "Execute this job using the task list content and task file path resolved by the preceding step.",
+        "Since the task list content is already loaded into context from the add-tasks dump, do NOT read the task file again; use the task file path exclusively for editing and updating task states in-place."
+      ],
+      "onDone": "complete",
+      "onError": "abort"
+    }
+  }
+}

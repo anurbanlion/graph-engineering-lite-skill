@@ -56,6 +56,7 @@ The job MUST produce a Managed Output containing the validated project charter. 
 ---
 title: <initiative title>
 domain: <kebab-case domain>
+description: <concise initiative description>
 ---
 
 # <initiative title>
