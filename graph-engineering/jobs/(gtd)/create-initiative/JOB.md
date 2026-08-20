@@ -1,4 +1,4 @@
-# Create Initiatives
+# Create Initiative
 
 ## Objective
 

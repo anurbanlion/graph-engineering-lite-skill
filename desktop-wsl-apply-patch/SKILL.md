@@ -52,7 +52,9 @@ wsl.exe -d distro -- sed -n -e '40,55=' -e '40,55p' path
 - Agents MUST use `<skill-local-folder>/scripts/apply_patch` as the only project-file edit path.
 - Agents MUST resolve `<skill-local-folder>` from this skill's installed source location before invoking `scripts/apply_patch`.
 - Agents MUST invoke `<skill-local-folder>/scripts/apply_patch` in an interactive PTY session, because the script reads patch instructions from stdin after startup.
-- Agents MUST send EOF (`Ctrl-D`) after sending the addition hunks so the interactive script applies the patch and exits.
+- Agents MUST send EOF (`Ctrl-D`) as a separate input after sending the addition hunks so the interactive script can apply the patch and exit.
+- If the interactive script remains running after the first `Ctrl-D`, agents MUST send a second separate `Ctrl-D` before treating the patch as failed.
+- If the script remains running after the second `Ctrl-D`, agents MUST halt, report the exact failure, and avoid alternate edit paths.
 - Agents MUST verify the patch report and the edited file after sending EOF; if the file is unchanged, agents MUST treat the patch as failed and MUST report an error.
 - Agents MUST use the prepared flow for all file edits: start `<skill-local-folder>/scripts/apply_patch`, send `read path start end`, wait for the removal template, then send matching addition hunks.
 - Agents MUST use `read path 1 1` for new files; the script determines that the file is missing and creates it from the same addition-hunk flow.

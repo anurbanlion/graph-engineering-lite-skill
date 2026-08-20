@@ -94,7 +94,7 @@ A job MAY produce a Project Output, a Managed Output, or both. Every successfull
 
 > Note: A managed-output domain name is a required input whenever `resolve-output-path.mjs` requires it. The agent MUST ask for it when absent and MUST NOT infer it.
 
-> Note: The agent MUST NOT manually inspect or list directories under `.graph-engineering/runs` using directory exploration tools (such as `list_dir` or `find_by_name`). Output discovery MUST rely strictly on official skill scripts (such as `get-latest-output-by-job.mjs`).
+> Note: The agent MUST NOT manually inspect or list directories under `.graph-engineering/runs` using directory exploration tools (such as `list_dir` or `find_by_name`). Output discovery MUST rely strictly on official skill scripts (such as `get-latest-output-by-job.mjs`). The agent MUST NOT execute output discovery scripts unless explicitly mandated by the selected job's `JOB.md` Process section or active graph instructions.
 
 **Job execution**
 

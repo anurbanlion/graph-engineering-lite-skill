@@ -53,7 +53,27 @@ The agent MAY modify:
 **2. Resolve Target Task**
 
 1. If `target task` is provided in the input or context, the agent MUST attempt to match it against the pending tasks `[ ]` in `task file content`.
-2. If `target task` is not provided or is not found among the pending tasks `[ ]` in `task file content`, the agent MUST present a line-budgeted list of pending tasks `[ ]` to the user (capped at 5 to 10 total lines, counting both parent task lines and child task lines combined) and ask the user to select which task to execute.
+2. If `target task` is not provided or is not found among the pending tasks `[ ]` in `task file content`, the agent MUST present a line-budgeted list of pending tasks `[ ]` to the user (capped at 10 total lines, counting both parent task lines and child task lines combined) and ask the user to select which task to execute.
+    - Whenever a pending parent task is shown, the agent MUST include its pending subtasks before showing unrelated top-level tasks.
+    - If the remaining line budget cannot fit every pending subtask of a shown parent task, the agent MUST explicitly state that the listing is truncated.
+    - The 10 line limit MUST count every displayed line, including parent and child task lines.
+
+Example:
+
+```txt
+- Pending task 1
+  - Pending subtask 1
+  - Pending subtask 2
+  - Pending subtask 3
+- Pending task 2
+  - Pending subtask 1
+  - Pending subtask 2
+- Pending task 3
+  - Pending subtask 1
+  - Pending subtask 2
+
+Can't show more pending tasks due to limit
+```
 
 **3. Evaluate Execution Constraints**
 

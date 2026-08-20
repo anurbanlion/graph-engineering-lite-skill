@@ -11,6 +11,7 @@
     "compile-initiatives": {
       "instructions": [
         "Execute this job only if a domain name is not provided in order to present initiative options to the user for selection.",
+        "Use global as the domain and create-initiative as the source-job-identifier.",
         "After presenting the initiative options, halt execution and ask the user to choose an initiative."
       ],
       "onDone": "add-tasks",
