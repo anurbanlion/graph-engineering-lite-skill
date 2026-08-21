@@ -1,16 +1,16 @@
 {
     "id": "job-execution",
     "version": "1.0",
-    "initial": "discoverJobs",
+    "initial": "discoveringJobs",
     "states": {
-        "discoverJobs": {
+        "discoveringJobs": {
             "instructions": [
                 "Execute the scripts/list-jobs.mjs script from the project root.",
                 "Use: node .codex/skills/graph-engineering/scripts/list-jobs.mjs"
             ],
             "on": {
-                "DONE": {
-                    "target": "resolveRequest",
+                "RESOLVE_REQUEST": {
+                    "target": "resolvingRequest",
                     "condition": "Job list is successfully retrieved"
                 },
                 "ERROR": {
@@ -19,21 +19,21 @@
                 }
             }
         },
-        "resolveRequest": {
+        "resolvingRequest": {
             "instructions": [
-                "Match the user's request against the discovered jobs and determine whether a single job can be selected."
+                "You MUST match the user's request against the discovered jobs and determine whether a single job can be selected."
             ],
             "on": {
-                "DONE": {
-                    "target": "readJob",
+                "READ_JOB_INPUTS": {
+                    "target": "readingJobInputs",
                     "condition": "A single matching job logical identifier is clearly identified"
                 },
                 "PRESENT_JOBS": {
-                    "target": "presentJobs",
+                    "target": "presentingJobs",
                     "condition": "The user did not provide a job name"
                 },
                 "NOT_FOUND": {
-                    "target": "presentJobs",
+                    "target": "presentingJobs",
                     "condition": "The user provided a job name, but no available job matches it"
                 },
                 "AMBIGUOUS": {
@@ -46,18 +46,20 @@
                 }
             }
         },
-        "presentJobs": {
+        "presentingJobs": {
             "instructions": [
-                "Present the discovered jobs to the user in the following format:",
+                "You MUST include every job exactly once; no job MAY be omitted, summarized, truncated, or replaced with phrases.",
+                "You MUST preserve each job's group name and logical identifier.",
+                "You MUST use the following format:",
                 "# Available Jobs:",
-                "- **(<group-name>)**: `<job-name>`, `<job-name>`",
-                "- **(<group-name>)**: `<job-name>`",
-                "- **Others**: `<job-name>`, `<job-name>`",
-                "Stop execution and ask which job they want to execute."
+                "- **(<group-name>)**: `<job-name>`, ... , `<job-name>`",
+                "- **(<group-name>)**: `<job-name>`, ... , `<job-name>`",
+                "- **Others**: `<job-name>`, ... , `<job-name>`",
+                "You MUST stop execution and ask which job they want to execute."
             ],
             "on": {
-                "DONE": {
-                    "target": "resolveRequest",
+                "RESOLVE_REQUEST": {
+                    "target": "resolvingRequest",
                     "condition": "The user provides a job name"
                 },
                 "ERROR": {
@@ -66,19 +68,109 @@
                 }
             }
         },
-        "readJob": {
+        "readingJobInputs": {
             "instructions": [
-                "Execute the scripts/read-jobs.mjs from the project root using only the selected job logical identifier.",
-                "Use: node .codex/skills/graph-engineering/scripts/read-jobs.mjs <job-name>"
+                "Execute the scripts/read_job_inputs.py from the project root using only the selected job logical identifier.",
+                "Use: python3 execute-job/scripts/read_job_inputs.py <job-name>"
             ],
             "on": {
-                "DONE": {
-                    "target": "complete",
+                "VALIDATE_EXECUTION_INPUTS": {
+                    "target": "validatingExecutionInputs",
                     "condition": "Job definition was successfully read"
                 },
                 "ERROR": {
                     "target": "abort",
                     "condition": "Failed to read job definition from disk"
+                }
+            }
+        },
+        "validatingExecutionInputs": {
+            "instructions": [
+                "You MUST inspect the extracted '## Inputs' section and verify whether all mandatory inputs defined there are available in the request or conversation context.",
+                "You MUST NOT execute the job process, create repository files, or run job scripts during this state."
+            ],
+            "on": {
+                "READ_JOB_PROCESS": {
+                    "target": "readingJobProcess",
+                    "condition": "All required execution inputs are present and valid"
+                },
+                "REQUEST_EXECUTION_INPUT": {
+                    "target": "requestingExecutionInput",
+                    "condition": "At least one required execution input is missing"
+                },
+                "ERROR": {
+                    "target": "abort",
+                    "condition": "An error occurred while validating execution inputs"
+                }
+            }
+        },
+        "requestingExecutionInput": {
+            "instructions": [
+                "You MUST stop execution and ask the user for the missing required execution input(s) explicitly.",
+                "You MUST explain what input is needed and why it is required for the job."
+            ],
+            "on": {
+                "VALIDATE_EXECUTION_INPUTS": {
+                    "target": "validatingExecutionInputs",
+                    "condition": "The user provides the required execution input(s)"
+                },
+                "ERROR": {
+                    "target": "abort",
+                    "condition": "An error occurred while requesting input"
+                }
+            }
+        },
+        "readingJobProcess": {
+            "instructions": [
+                "Execute the scripts/read_job_process.py from the project root using only the selected job logical identifier.",
+                "Use: python3 execute-job/scripts/read_job_process.py <job-name>"
+            ],
+            "on": {
+                "VALIDATE_JOB_PROCESS": {
+                    "target": "validatingJobProcess",
+                    "condition": "Job process was successfully read"
+                },
+                "ERROR": {
+                    "target": "abort",
+                    "condition": "Failed to read job process from disk"
+                }
+            }
+        },
+        "validatingJobProcess": {
+            "instructions": [
+                "You MUST inspect the extracted '## Process' section and verify that it contains NO references to creating, generating, writing, persisting, or resolving Managed Outputs.",
+                "You MUST report the exact lines where you find any prohibited references to Managed Outputs."
+            ],
+            "on": {
+                "SPAWN_JOB": {
+                    "target": "spawningJob",
+                    "condition": "The process is free of Managed Output references"
+                },
+                "MANAGED_OUTPUT_REFERENCE_FOUND": {
+                    "target": "abort",
+                    "condition": "The process contains a prohibited reference to Managed Outputs"
+                },
+                "ERROR": {
+                    "target": "abort",
+                    "condition": "An error occurred while validating the job process"
+                }
+            }
+        },
+        "spawningJob": {
+            "instructions": [
+                "You MUST execute the job process exclusively according to the extracted '## Process' instructions.",
+                "You MAY engage in multi-turn conversation, interviews, or interactive steps with the user as required by the job's process.",
+                "You MUST preserve the active '<execution-id>' across all intermediate conversational turns.",
+                "You MUST NOT resolve, create, or write Managed Output files during this state; upon completing the job process steps, you MUST stop before generating any Managed Output and resume this graph execution."
+            ],
+            "on": {
+                "READ_JOB_OUTPUT": {
+                    "target": "complete",
+                    "condition": "Job instructions executed successfully"
+                },
+                "ERROR": {
+                    "target": "abort",
+                    "condition": "An error occurred during job execution"
                 }
             }
         },
