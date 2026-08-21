@@ -1,0 +1,123 @@
+{
+    "id": "job-execution",
+    "version": "1.0",
+    "initial": "discoverJobs",
+    "states": {
+        "discoverJobs": {
+            "instructions": [
+                "Execute the scripts/list-jobs.mjs script from the project root.",
+                "Use: node .codex/skills/graph-engineering/scripts/list-jobs.mjs"
+            ],
+            "on": {
+                "DONE": {
+                    "target": "resolveRequest",
+                    "condition": "Job list is successfully retrieved"
+                },
+                "ERROR": {
+                    "target": "abort",
+                    "condition": "Failed to list available jobs"
+                }
+            }
+        },
+        "resolveRequest": {
+            "instructions": [
+                "Match the user's request against the discovered jobs and determine whether a single job can be selected."
+            ],
+            "on": {
+                "DONE": {
+                    "target": "readJob",
+                    "condition": "A single matching job logical identifier is clearly identified"
+                },
+                "PRESENT_JOBS": {
+                    "target": "presentJobs",
+                    "condition": "The user did not provide a job name"
+                },
+                "NOT_FOUND": {
+                    "target": "presentJobs",
+                    "condition": "The user provided a job name, but no available job matches it"
+                },
+                "AMBIGUOUS": {
+                    "target": "abort",
+                    "condition": "More than one discovered job matches the requested job name or the same logical identifier appears more than once"
+                },
+                "ERROR": {
+                    "target": "abort",
+                    "condition": "An error occurred while resolving the user's request"
+                }
+            }
+        },
+        "presentJobs": {
+            "instructions": [
+                "Present the discovered jobs to the user in the following format:",
+                "# Available Jobs:",
+                "- **(<group-name>)**: `<job-name>`, `<job-name>`",
+                "- **(<group-name>)**: `<job-name>`",
+                "- **Others**: `<job-name>`, `<job-name>`",
+                "Stop execution and ask which job they want to execute."
+            ],
+            "on": {
+                "DONE": {
+                    "target": "resolveRequest",
+                    "condition": "The user provides a job name"
+                },
+                "ERROR": {
+                    "target": "abort",
+                    "condition": "An error occurred while presenting the available jobs"
+                }
+            }
+        },
+        "readJob": {
+            "instructions": [
+                "Execute the scripts/read-jobs.mjs from the project root using only the selected job logical identifier.",
+                "Use: node .codex/skills/graph-engineering/scripts/read-jobs.mjs <job-name>"
+            ],
+            "on": {
+                "DONE": {
+                    "target": "complete",
+                    "condition": "Job definition was successfully read"
+                },
+                "ERROR": {
+                    "target": "abort",
+                    "condition": "Failed to read job definition from disk"
+                }
+            }
+        },
+        "complete": {
+            "type": "final"
+        },
+        "abort": {
+            "type": "final"
+        }
+    },
+    "tests": [
+        {
+            "case": "Executes an existing job",
+            "prompts": [
+                "Execute the compile-storefront-use-cases job."
+            ],
+            "expectedResult": "The runtime selects compile-storefront-use-cases and reaches readJob."
+        },
+        {
+            "case": "Presents jobs when no job name is provided",
+            "prompts": [
+                "What jobs are available?",
+                "Execute a job"
+            ],
+            "expectedResult": "The runtime transitions to presentJobs."
+        },
+        {
+            "case": "Aborts when the requested job does not exist",
+            "prompts": [
+                "Execute the nonexistent-job job."
+            ],
+            "expectedResult": "The runtime transitions to abort through NOT_FOUND."
+        },
+        {
+            "case": "Aborts when the job identifier is ambiguous",
+            "prompts": [
+                "Execute duplicate-job."
+            ],
+            "expectedResult": "The runtime transitions to abort through AMBIGUOUS."
+        }
+    ]
+}

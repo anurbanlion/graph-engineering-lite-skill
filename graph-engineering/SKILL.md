@@ -72,17 +72,23 @@ A job MAY produce a Project Output, a Managed Output, or both. Every successfull
 
 **Job discovery**
 
-1. The agent MUST execute `node scripts/list-jobs.mjs` before selecting a job.
-2. The agent MUST use the returned relative paths to identify the single job that best matches the explicit user request.
-3. The agent MUST use only the selected job's logical identifier when calling `read-jobs.mjs`.
-4. The agent MUST NOT read any job definition before selecting its logical identifier.
-5. The agent MUST read the selected job by executing `node scripts/read-jobs.mjs <job-name>`.
+1. When the user explicitly requests execution of a named job, the agent MUST start the job execution runtime from the project root by executing:
 
-> Note: `read-jobs.mjs` MAY accept multiple job names, but the agent MUST NOT use that capability in the current workflow.
+```bash
+python3 .codex/skills/graph-engineering/scripts/execute.py
+```
 
-> Note: If no available job name reasonably matches the user request, the agent MUST halt execution and inform the user that no suitable job is available.
+2. The agent MUST NOT display intermediate runtime JSON payloads to the user.
+3. The agent MUST execute the `instructions` returned by the current runtime state.
+4. After completing the current state's instructions, the agent MUST evaluate the available transitions, select the transition whose condition matches the observed result, and advance the runtime by executing:
 
-> Note: If two listed job paths share a logical identifier, the agent MUST halt execution and report the ambiguity.
+```bash
+python3 .codex/skills/graph-engineering/scripts/execute.py <current-state> <transition>
+```
+- The first argument MUST be the exact state value returned by the previous execution; it MUST NOT be the destination state.
+
+# TODO: remove this rule once execute script is finished
+> The agent MUST NOT execute list-jobs.mjs, list-graphs.mjs, or any other discovery script before starting the runtime with execute.py. Discovery MUST occur only when explicitly returned as an instruction by the current runtime state.
 
 **Job pre-execution**
 

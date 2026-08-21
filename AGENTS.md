@@ -27,6 +27,28 @@ Example output:
 Favorite: `feat(hero-banner): add responsive image metadata` because it best represents the user-visible capability.
 ```
 
+## Instruction Clarification and Discrepancy Analysis
+
+- When the user inquires why an action was omitted, failed, or deviated from expectations, agents MUST NOT provide generic apologies, excuses, or pass-off explanations such as "it was my mistake".
+- Agents MUST assume discrepancies originate from ambiguities, gaps, or conflicting instructions in repository documentation or prompt rules.
+- Agents MUST analyze the root cause by specifying how the current instructions were interpreted, citing the exact file, line number, or rule where the ambiguity or constraint occurred.
+- Agents MUST propose concrete modifications (specifying file, line range, and proposed replacement text) to clarify the instruction so that future executions unambiguously produce the desired behavior.
+
+### Example
+
+When asked *"Why did you not perform X?"*, the agent response MUST follow this structure:
+
+```text
+The action was omitted because of the interpretation of [AGENTS.md:L60]:
+- Current instruction: "<text of rule>"
+- Interpretation: "<why this caused the agent not to do X>"
+
+Proposed instruction update to align future behavior:
+- Target: `AGENTS.md` (around line 60)
+- Replace with:
+  "<new clarified rule text>"
+```
+
 ## Codex Desktop WSL workflow
 
 When running Codex Desktop in Windows and controlling this repository through WSL:
