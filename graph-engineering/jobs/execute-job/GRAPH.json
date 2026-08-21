@@ -165,12 +165,123 @@
             ],
             "on": {
                 "READ_JOB_OUTPUT": {
-                    "target": "complete",
+                    "target": "readingJobOutput",
                     "condition": "Job instructions executed successfully"
                 },
                 "ERROR": {
                     "target": "abort",
                     "condition": "An error occurred during job execution"
+                }
+            }
+        },
+        "readingJobOutput": {
+            "instructions": [
+                "You MUST execute the output reader script for the selected job to extract its Output definition.",
+                "Use: python3 execute-job/scripts/read_job_output.py <job-name>"
+            ],
+            "on": {
+                "RESOLVE_MANAGED_OUTPUT_PATH": {
+                    "target": "resolvingManagedOutputPath",
+                    "condition": "Job defines a Managed Output"
+                },
+                "BUILD_CONTEXT_OUTPUT": {
+                    "target": "buildingContextOutput",
+                    "condition": "Job does not define a Managed Output"
+                },
+                "ERROR": {
+                    "target": "abort",
+                    "condition": "Failed to read job output from disk"
+                }
+            }
+        },
+        "resolvingManagedOutputPath": {
+            "instructions": [
+                "If the `<domain>` is not available in the current context, you MUST transition using REQUEST_MANAGED_OUTPUT_DOMAIN inmediatly.",
+                "You MUST resolve the path for the Managed Output using the resolve-output-path script.",
+                "Use: python3 execute-job/scripts/resolve_output_path.py <domain> <job-name>"
+            ],
+            "on": {
+                "WRITE_MANAGED_OUTPUT": {
+                    "target": "writingManagedOutput",
+                    "condition": "Managed Output path is resolved successfully"
+                },
+                "REQUEST_MANAGED_OUTPUT_DOMAIN": {
+                    "target": "requestingManagedOutputDomain",
+                    "condition": "Managed Output domain is not available"
+                },
+                "ERROR": {
+                    "target": "abort",
+                    "condition": "An error occurred while resolving the managed output path"
+                }
+            }
+        },
+        "requestingManagedOutputDomain": {
+            "instructions": [
+                "You MUST stop execution and explicitly ask the user to provide the '<domain>' required for the Managed Output.",
+                "You MUST explain why the domain is needed."
+            ],
+            "on": {
+                "RESOLVE_MANAGED_OUTPUT_PATH": {
+                    "target": "resolvingManagedOutputPath",
+                    "condition": "The user provides the required domain"
+                },
+                "ERROR": {
+                    "target": "abort",
+                    "condition": "An error occurred while requesting the domain"
+                }
+            }
+        },
+        "writingManagedOutput": {
+            "instructions": [
+                "You MUST write the Managed Output exactly to the path resolved in the previous state.",
+                "You MUST NOT create alternative paths manually.",
+                "Ensure the output conforms exactly to the format and schema expected in the job definition's '## Output' section."
+            ],
+            "on": {
+                "BUILD_CONTEXT_OUTPUT": {
+                    "target": "buildingContextOutput",
+                    "condition": "Managed Output is successfully written"
+                },
+                "ERROR": {
+                    "target": "abort",
+                    "condition": "An error occurred while writing the managed output"
+                }
+            }
+        },
+        "buildingContextOutput": {
+            "instructions": [
+                "You MUST build the Context Output, which is the final response given to the user, using the current job's logical identifier as the root.",
+                "You MUST include links to all Project Outputs created or modified during the current execution.",
+                "You MUST include a link to the Managed Output generated during this execution, if any.",
+                "You MUST normalize all artifact links as absolute paths starting with '/'.",
+                "You MUST format the Context Output exactly using this markdown structure:",
+                "```md",
+                "[JOB] **<job-logical-identifier>**:",
+                "- [<Artifact Title or Filename>](</absolute/path/to/artifact>)",
+                "**Summary**: <Briefly describe what was completed during the job execution.",
+                "```",
+                "If no artifacts were generated, you MUST explicitly state that result using this structure:",
+                "```md",
+                "[JOB] **<job-logical-identifier>**: No file artifacts generated.",
+                "**Summary**: <Briefly describe what was completed during the job execution, even when no file artifacts were generated.>",
+                "```",
+                "Example:",
+                "```md",
+                "[JOB] **design-journey-use-cases**:",
+                "- [Journey Use-Case Design](/.graph-engineering/runs/account/design-journey-use-cases/OUTPUT-20260811-1030.md)",
+                "- [account.contract.ts](/apps/storefront/apis/account/domain/contracts/account.contract.ts)",
+                "**Summary**: Designed 3 use cases and updated the contracts.",
+                "```",
+                "You MUST append any additional user-facing information mandated by the job's '## Output ### Context Output' section."
+            ],
+            "on": {
+                "COMPLETE": {
+                    "target": "complete",
+                    "condition": "Context Output is successfully built and reported"
+                },
+                "ERROR": {
+                    "target": "abort",
+                    "condition": "An error occurred while building context output"
                 }
             }
         },
@@ -210,6 +321,27 @@
                 "Execute duplicate-job."
             ],
             "expectedResult": "The runtime transitions to abort through AMBIGUOUS."
+        },
+        {
+            "case": "Job with Managed Output reaches writingManagedOutput and completes",
+            "prompts": [
+                "Execute no-input-with-managed-output-job."
+            ],
+            "expectedResult": "The runtime transitions through resolvingManagedOutputPath, writingManagedOutput, buildingContextOutput, and reaches complete."
+        },
+        {
+            "case": "Job without Managed Output skips to buildingContextOutput",
+            "prompts": [
+                "Execute read-documentation job for usage.md."
+            ],
+            "expectedResult": "The runtime transitions directly to buildingContextOutput and reaches complete."
+        },
+        {
+            "case": "Missing domain transitions to requestingManagedOutputDomain",
+            "prompts": [
+                "Execute compile-initiatives without specifying a domain."
+            ],
+            "expectedResult": "The runtime transitions to requestingManagedOutputDomain to ask the user for the domain."
         }
     ]
 }

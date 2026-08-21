@@ -83,9 +83,9 @@ class TestExtractSection:
         assert "Read the source job outputs" not in result
         assert "## Process" not in result
 
-    def test_does_not_include_heading_itself(self):
+    def test_includes_heading_itself(self):
         result = extract_section(SAMPLE_JOB_MD, "## Inputs")
-        assert not result.startswith("## Inputs")
+        assert result.startswith("## Inputs\n\n")
 
     def test_returns_empty_string_when_heading_not_found(self):
         result = extract_section(SAMPLE_JOB_MD, "## Nonexistent")

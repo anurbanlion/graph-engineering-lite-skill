@@ -15,4 +15,8 @@ def extract_section(content, heading):
     """
     pattern = rf"^{re.escape(heading)}\s*\n(.*?)(?=^## |\Z)"
     match = re.search(pattern, content, re.MULTILINE | re.DOTALL)
-    return match.group(1).strip() if match else ""
+    if not match:
+        return ""
+    
+    body = match.group(1).strip()
+    return f"{heading}\n\n{body}" if body else heading
