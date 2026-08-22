@@ -55,19 +55,39 @@ The agent MUST use RFC-style normative language when creating a new job, graphs 
 1. When the user explicitly requests execution of a named job, the agent MUST start the job execution runtime from the project root by executing this exact command:
 
 ```bash
-python3 .codex/skills/graph-engineering/scripts/execute.py
+python3 .codex/skills/graph-engineering/scripts/execute.py [execution-mode]
 ```
 
+- `[execution-mode]` is optional. You MUST omit it to use the `default` mode.
+- You MUST only provide an `[execution-mode]` if the user explicitly requests one of the following modes: `echo`, `latest`, or `iterative`.
 - The runtime MUST return an `execution_id` that the agent MUST use to continue this execution.
 
 2. The agent MUST execute the `instructions` returned by the current runtime state.
 3. The agent MUST NOT display intermediate runtime JSON payloads to the user.
-4. After completing the current state's instructions, MUST select the single transition whose condition matches the observed result, and advance the runtime by executing:
+4. After completing the current state's instructions, the agent MUST select the single transition whose condition matches the observed result.
+5. If the selected transition contains `instructions`, the agent MUST execute those instructions BEFORE advancing the runtime.
+6. Advance the runtime by executing:
 
 ```bash
-python3 .codex/skills/graph-engineering/scripts/execute.py <execution-id> <event>
+python3 .codex/skills/graph-engineering/scripts/execute.py <execution-id> <event> [--context <key>=<value> ...]
 ```
-- The first argument MUST be the exact `execution_id` returned by the first execution, and the second argument MUST be the selected event.
+- The first argument MUST be the exact `execution_id` returned by the first execution.
+- The second argument MUST be the selected event.
+- The runtime maintains a `context` dictionary to track variables. If the selected transition's instructions require you to update the context, you MUST append the `--context <key>=<value>` flag to your command.
+- You MUST NOT append `--context` flags unless the selected transition's instructions explicitly require it.
+- You MUST replace any placeholders in the flag with the actual resolved values.
+- You can append multiple `--context` flags if multiple updates are required.
+
+Example (single update):
+```bash
+python3 execute.py <execution-id> <event> --context my_key=my_value
+```
+
+Example (multiple updates):
+```bash
+python3 execute.py <execution-id> <event> --context my_key=my_value --context another_key=another_value
+```
+
 - The agent MUST NOT terminate, summarize, or expose the result while a matching transition remains available.
 
 ## Executing Scripts

@@ -2,6 +2,8 @@
 
 import json
 import os
+import shlex
+import subprocess
 import sys
 import tempfile
 import uuid
@@ -11,6 +13,7 @@ from lib.errors import fail
 from lib.paths import (
     EXECUTE_JOB_GRAPH_RELATIVE_PATH,
     RUNTIME_RELATIVE_PATH,
+    SKILL_LOCATION,
     get_project_root,
 )
 
@@ -23,6 +26,8 @@ PROJECT_ROOT = get_project_root()
 GRAPH_PATH = PROJECT_ROOT / EXECUTE_JOB_GRAPH_RELATIVE_PATH
 
 MEMORY_DIR = PROJECT_ROOT / RUNTIME_RELATIVE_PATH
+
+VALID_EXECUTION_MODES = {"default", "echo", "latest", "iterative"}
 
 # ---------------------------------------------------------------------
 # Utilities
@@ -172,6 +177,98 @@ def save_execution(execution):
 
 
 # ---------------------------------------------------------------------
+# Script node execution
+# ---------------------------------------------------------------------
+
+
+def execute_script_node(graph, execution):
+    """
+    Execute all scripts declared in a script-type node and auto-transition.
+
+    Script nodes declare a "scripts" array instead of "instructions".
+    On success (all scripts exit 0), transitions via "DONE".
+    On failure (any script exits non-zero), transitions via "ERROR".
+    If the expected transition event is missing, falls back to "abort".
+    """
+    state_name = execution["state"]
+    state_definition = graph["states"][state_name]
+    scripts = state_definition.get("scripts", [])
+    transitions = state_definition.get("on", {})
+
+    context = execution.get("context", {})
+
+    for script_cmd in scripts:
+        formatted_cmd = script_cmd.format(**context)
+        parts = shlex.split(formatted_cmd)
+        
+        script_rel_path = parts[0]
+        args = parts[1:]
+
+        full_path = str(PROJECT_ROOT / SKILL_LOCATION / script_rel_path.lstrip("/"))
+
+        result = subprocess.run(
+            ["python3", full_path] + args,
+            cwd=str(PROJECT_ROOT),
+        )
+
+        if result.returncode != 0:
+            if "ERROR" in transitions:
+                continue_execution(graph, execution["execution_id"], "ERROR")
+            else:
+                # Force abort when no ERROR transition is defined.
+                execution["state"] = "abort"
+                save_execution(execution)
+                emit_state(
+                    graph,
+                    execution,
+                    previous_state=state_name,
+                    event="ERROR",
+                    condition="Script failed and no ERROR transition defined",
+                )
+            return
+
+    # All scripts succeeded.
+    if "DONE" in transitions:
+        continue_execution(graph, execution["execution_id"], "DONE")
+    else:
+        # Force abort when no DONE transition is defined.
+        execution["state"] = "abort"
+        save_execution(execution)
+        emit_state(
+            graph,
+            execution,
+            previous_state=state_name,
+            event="DONE",
+            condition="Script succeeded but no DONE transition defined",
+        )
+
+
+def execute_switch_node(graph, execution):
+    state_name = execution["state"]
+    state_definition = graph["states"][state_name]
+    switch_key = state_definition["switch"]
+    
+    parts = switch_key.split(".")
+    val = execution
+    for p in parts:
+        if isinstance(val, dict):
+            val = val.get(p, {})
+        else:
+            fail(f"Could not resolve switch key '{switch_key}' at '{p}'.")
+    
+    if not isinstance(val, str):
+        fail(f"Switch key '{switch_key}' resolved to non-string value: {val}")
+
+    if val in state_definition.get("on", {}):
+        continue_execution(graph, execution["execution_id"], val)
+    else:
+        fail(
+            f"Switch value '{val}' (from '{switch_key}') has no "
+            f"matching transition in state '{state_name}'."
+        )
+
+
+# ---------------------------------------------------------------------
 # State output
 # ---------------------------------------------------------------------
 
@@ -193,8 +290,21 @@ def emit_state(
 
     state_definition = graph["states"][state_name]
 
+    # Script nodes are handled entirely by the runtime.
+    # No JSON metadata is emitted; the function auto-transitions.
+    if "scripts" in state_definition:
+        execute_script_node(graph, execution)
+        return
+
+    # Switch nodes evaluate a property and auto-transition.
+    if "switch" in state_definition:
+        execute_switch_node(graph, execution)
+        return
+
     result = {
         "execution_id": execution["execution_id"],
+        "execution_mode": execution.get("execution_mode", "default"),
+        "context": execution.get("context", {}),
         "state": state_name,
         **state_definition,
     }
@@ -230,7 +340,7 @@ def emit_state(
 # ---------------------------------------------------------------------
 
 
-def start_execution(graph):
+def start_execution(graph, execution_mode="default"):
     execution_id = create_execution_id()
 
     initial_state = graph["initial"]
@@ -239,6 +349,8 @@ def start_execution(graph):
 
     execution = {
         "execution_id": execution_id,
+        "execution_mode": execution_mode,
+        "context": {},
         "state": initial_state,
         "metadata": {
             "event": None,
@@ -275,8 +387,12 @@ def continue_execution(
     graph,
     execution_id,
     event,
+    context_updates=None,
 ):
     execution = load_execution(execution_id)
+
+    if context_updates:
+        execution.setdefault("context", {}).update(context_updates)
 
     current_state = execution["state"]
 
@@ -340,6 +456,15 @@ def continue_execution(
     }
     execution.setdefault("history", []).append(execution["metadata"])
 
+    # Iterative mode: after printing the latest output, mutate the execution mode
+    # to 'default' so the next pass through resolvingExecutionMode routes to spawningJob.
+    if (
+        execution.get("execution_mode") == "iterative"
+        and current_state == "printingOutput"
+        and event == "RESOLVE_EXECUTION_MODE"
+    ):
+        execution["execution_mode"] = "default"
+
     save_execution(execution)
 
     emit_state(
@@ -362,33 +487,65 @@ def main():
 
     # -------------------------------------------------------------
     # execute.py
+    # execute.py <execution-mode>
     #
     # Starts a completely new execution.
+    # Mode is optional and defaults to "default".
     # -------------------------------------------------------------
 
-    if len(sys.argv) == 1:
-        start_execution(graph)
+    if len(sys.argv) <= 2 and (
+        len(sys.argv) == 1
+        or sys.argv[1] in VALID_EXECUTION_MODES
+    ):
+        execution_mode = sys.argv[1] if len(sys.argv) == 2 else "default"
+
+        if execution_mode not in VALID_EXECUTION_MODES:
+            fail(
+                f"Invalid execution mode '{execution_mode}'. "
+                f"Valid modes: {sorted(VALID_EXECUTION_MODES)}"
+            )
+
+        start_execution(graph, execution_mode)
         return
 
     # -------------------------------------------------------------
-    # execute.py <execution-id> <event>
+    # execute.py <execution-id> <event> [--set key=value ...]
     #
     # Continues an existing execution.
     # -------------------------------------------------------------
-
-    if len(sys.argv) == 3:
+    elif len(sys.argv) >= 3:
         execution_id = sys.argv[1]
         event = sys.argv[2]
+        
+        context_updates = {}
+        i = 3
+        while i < len(sys.argv):
+            if sys.argv[i] == "--context" and i + 1 < len(sys.argv):
+                key_value = sys.argv[i+1]
+                if "=" in key_value:
+                    k, v = key_value.split("=", 1)
+                    context_updates[k] = v
+                else:
+                    fail(f"Invalid format for --context, expected key=value but got: {key_value}")
+                i += 2
+            else:
+                fail(f"Invalid or incomplete argument: {sys.argv[i]}")
 
         continue_execution(
             graph,
             execution_id,
             event,
+            context_updates=context_updates,
         )
 
         return
 
-    fail("Usage:\n" "  execute.py\n" "  execute.py <execution-id> <event>")
+    fail(
+        "Usage:\n"
+        "  execute.py [execution-mode]\n"
+        "  execute.py <execution-id> <event>\n"
+        f"\nValid modes: {sorted(VALID_EXECUTION_MODES)}"
+    )
 
 
 if __name__ == "__main__":

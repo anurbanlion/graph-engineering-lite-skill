@@ -1,15 +1,17 @@
 {
     "id": "job-execution",
     "version": "1.0",
+    "context": {
+        "job_name": "string"
+    },
     "initial": "discoveringJobs",
     "states": {
         "discoveringJobs": {
-            "instructions": [
-                "Execute the scripts/list-jobs.mjs script from the project root.",
-                "Use: node .codex/skills/graph-engineering/scripts/list-jobs.mjs"
+            "scripts": [
+                "scripts/list_jobs.py"
             ],
             "on": {
-                "RESOLVE_REQUEST": {
+                "DONE": {
                     "target": "resolvingRequest",
                     "condition": "Job list is successfully retrieved"
                 },
@@ -26,7 +28,10 @@
             "on": {
                 "READ_JOB_INPUTS": {
                     "target": "readingJobInputs",
-                    "condition": "A single matching job logical identifier is clearly identified"
+                    "condition": "A single matching job logical identifier is clearly identified",
+                    "instructions": [
+                        "Update the runtime context by appending the flag: --context job_name=<matched-logical-identifier>"
+                    ]
                 },
                 "PRESENT_JOBS": {
                     "target": "presentingJobs",
@@ -69,12 +74,11 @@
             }
         },
         "readingJobInputs": {
-            "instructions": [
-                "Execute the scripts/read_job_inputs.py from the project root using only the selected job logical identifier.",
-                "Use: python3 execute-job/scripts/read_job_inputs.py <job-name>"
+            "scripts": [
+                "scripts/read_job_inputs.py {job_name}"
             ],
             "on": {
-                "VALIDATE_EXECUTION_INPUTS": {
+                "DONE": {
                     "target": "validatingExecutionInputs",
                     "condition": "Job definition was successfully read"
                 },
@@ -121,12 +125,11 @@
             }
         },
         "readingJobProcess": {
-            "instructions": [
-                "Execute the scripts/read_job_process.py from the project root using only the selected job logical identifier.",
-                "Use: python3 execute-job/scripts/read_job_process.py <job-name>"
+            "scripts": [
+                "scripts/read_job_process.py {job_name}"
             ],
             "on": {
-                "VALIDATE_JOB_PROCESS": {
+                "DONE": {
                     "target": "validatingJobProcess",
                     "condition": "Job process was successfully read"
                 },
@@ -142,8 +145,8 @@
                 "You MUST report the exact lines where you find any prohibited references to Managed Outputs."
             ],
             "on": {
-                "SPAWN_JOB": {
-                    "target": "spawningJob",
+                "RESOLVE_EXECUTION_MODE": {
+                    "target": "resolvingExecutionMode",
                     "condition": "The process is free of Managed Output references"
                 },
                 "MANAGED_OUTPUT_REFERENCE_FOUND": {
@@ -153,6 +156,23 @@
                 "ERROR": {
                     "target": "abort",
                     "condition": "An error occurred while validating the job process"
+                }
+            }
+        },
+        "resolvingExecutionMode": {
+            "switch": "execution_mode",
+            "on": {
+                "default": {
+                    "target": "spawningJob"
+                },
+                "echo": {
+                    "target": "spawningJob"
+                },
+                "latest": {
+                    "target": "resolvingLatestOutput"
+                },
+                "iterative": {
+                    "target": "resolvingLatestOutput"
                 }
             }
         },
@@ -175,14 +195,37 @@
             }
         },
         "readingJobOutput": {
+            "scripts": [
+                "scripts/read_job_output.py {job_name}"
+            ],
+            "on": {
+                "DONE": {
+                    "target": "evaluatingJobOutput",
+                    "condition": "Job output definition was successfully read"
+                },
+                "ERROR": {
+                    "target": "abort",
+                    "condition": "Failed to read job output definition from disk"
+                }
+            }
+        },
+        "evaluatingJobOutput": {
             "instructions": [
-                "You MUST execute the output reader script for the selected job to extract its Output definition.",
-                "Use: python3 execute-job/scripts/read_job_output.py <job-name>"
+                "You MUST inspect the extracted '## Output' section and determine whether the job defines a Managed Output, no Output, or a Managed Output that is handled by the script.",
+                "You MUST also check the 'execution_mode' in the runtime payload to determine the correct transition if the managed output is handled by the script."
             ],
             "on": {
                 "RESOLVE_MANAGED_OUTPUT_PATH": {
                     "target": "resolvingManagedOutputPath",
-                    "condition": "Job defines a Managed Output"
+                    "condition": "Job defines a Managed Output that must be generated by the agent"
+                },
+                "SKIP_MANAGED_OUTPUT_DEFAULT": {
+                    "target": "buildingContextOutput",
+                    "condition": "Job defines a Managed Output handled by the script AND execution_mode is NOT 'echo'"
+                },
+                "SKIP_MANAGED_OUTPUT_ECHO": {
+                    "target": "resolvingLatestOutput",
+                    "condition": "Job defines a Managed Output handled by the script AND execution_mode is 'echo'"
                 },
                 "BUILD_CONTEXT_OUTPUT": {
                     "target": "buildingContextOutput",
@@ -190,7 +233,7 @@
                 },
                 "ERROR": {
                     "target": "abort",
-                    "condition": "Failed to read job output from disk"
+                    "condition": "An error occurred while evaluating job output"
                 }
             }
         },
@@ -240,7 +283,11 @@
             "on": {
                 "BUILD_CONTEXT_OUTPUT": {
                     "target": "buildingContextOutput",
-                    "condition": "Managed Output is successfully written"
+                    "condition": "Managed Output is successfully written and execution_mode is 'default'"
+                },
+                "PRINT_OUTPUT": {
+                    "target": "printingOutput",
+                    "condition": "Managed Output is successfully written and execution_mode is 'echo'"
                 },
                 "ERROR": {
                     "target": "abort",
@@ -248,29 +295,80 @@
                 }
             }
         },
+        "resolvingLatestOutput": {
+            "instructions": [
+                "You MUST locate the latest existing Managed Output for the current job and domain.",
+                "Use: python3 execute-job/scripts/print_latest_output.py <domain> <job-name>"
+            ],
+            "on": {
+                "PRINT_OUTPUT": {
+                    "target": "printingOutput",
+                    "condition": "Latest Managed Output is found"
+                },
+                "REQUEST_MANAGED_OUTPUT_DOMAIN": {
+                    "target": "requestingLatestOutputDomain",
+                    "condition": "Managed Output domain is not available"
+                },
+                "ERROR": {
+                    "target": "abort",
+                    "condition": "An error occurred while resolving the latest output"
+                }
+            }
+        },
+        "requestingLatestOutputDomain": {
+            "instructions": [
+                "You MUST stop execution and explicitly ask the user to provide the '<domain>' required to locate the latest Managed Output.",
+                "You MUST explain why the domain is needed."
+            ],
+            "on": {
+                "RESOLVE_LATEST_OUTPUT": {
+                    "target": "resolvingLatestOutput",
+                    "condition": "The user provides the required domain"
+                },
+                "ERROR": {
+                    "target": "abort",
+                    "condition": "An error occurred while requesting the domain"
+                }
+            }
+        },
+        "printingOutput": {
+            "switch": "execution_mode",
+            "on": {
+                "iterative": {
+                    "target": "resolvingExecutionMode"
+                },
+                "default": {
+                    "target": "buildingContextOutput"
+                },
+                "echo": {
+                    "target": "buildingContextOutput"
+                },
+                "latest": {
+                    "target": "buildingContextOutput"
+                }
+            }
+        },
         "buildingContextOutput": {
             "instructions": [
-                "You MUST build the Context Output, which is the final response given to the user, using the current job's logical identifier as the root.",
+                "You MUST build the Context Output using the current job's logical identifier as the root bullet.",
                 "You MUST include links to all Project Outputs created or modified during the current execution.",
                 "You MUST include a link to the Managed Output generated during this execution, if any.",
                 "You MUST normalize all artifact links as absolute paths starting with '/'.",
                 "You MUST format the Context Output exactly using this markdown structure:",
                 "```md",
-                "[JOB] **<job-logical-identifier>**:",
-                "- [<Artifact Title or Filename>](</absolute/path/to/artifact>)",
-                "**Summary**: <Briefly describe what was completed during the job execution.",
+                "- **<job-logical-identifier>**:",
+                "  - [<Artifact Title or Filename>](</absolute/path/to/artifact>)",
                 "```",
                 "If no artifacts were generated, you MUST explicitly state that result using this structure:",
                 "```md",
-                "[JOB] **<job-logical-identifier>**: No file artifacts generated.",
-                "**Summary**: <Briefly describe what was completed during the job execution, even when no file artifacts were generated.>",
+                "- **<job-logical-identifier>**: No file artifacts generated.",
                 "```",
                 "Example:",
                 "```md",
-                "[JOB] **design-journey-use-cases**:",
-                "- [Journey Use-Case Design](/.graph-engineering/runs/account/design-journey-use-cases/OUTPUT-20260811-1030.md)",
-                "- [account.contract.ts](/apps/storefront/apis/account/domain/contracts/account.contract.ts)",
-                "**Summary**: Designed 3 use cases and updated the contracts.",
+                "- **design-journey-use-cases**:",
+                "  - [Journey Use-Case Design](/.graph-engineering/runs/account/design-journey-use-cases/OUTPUT-20260811-1030.md)",
+                "  - [account.contract.ts](/apps/storefront/apis/account/domain/contracts/account.contract.ts)",
+                "  - **Summary**: Designed 3 use cases and updated the contracts.",
                 "```",
                 "You MUST append any additional user-facing information mandated by the job's '## Output ### Context Output' section."
             ],
@@ -309,11 +407,11 @@
             "expectedResult": "The runtime transitions to presentJobs."
         },
         {
-            "case": "Aborts when the requested job does not exist",
+            "case": "Presents jobs when the requested job does not exist",
             "prompts": [
                 "Execute the nonexistent-job job."
             ],
-            "expectedResult": "The runtime transitions to abort through NOT_FOUND."
+            "expectedResult": "The runtime transitions to presentingJobs through NOT_FOUND."
         },
         {
             "case": "Aborts when the job identifier is ambiguous",

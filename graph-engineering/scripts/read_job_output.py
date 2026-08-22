@@ -29,7 +29,7 @@ def main():
     except Exception as e:
         fail(f"Error reading {job_md_path}: {e}")
 
-    output_section = extract_section(content, "## Output")
+    output_section = extract_section(content, "## Output", read_to_eof=True)
 
     print(f"===== JOB OUTPUT: {job_name} =====")
     if output_section:

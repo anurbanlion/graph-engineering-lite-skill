@@ -11,13 +11,15 @@ AGENT_SKILL_FOLDER = Path(
     os.environ.get("CODEX_AGENT_SKILL_FOLDER", ".codex/skills")
 )
 
+SKILL_LOCATION = AGENT_SKILL_FOLDER / "graph-engineering"
+
 EXECUTE_JOB_GRAPH_RELATIVE_PATH = (
-    AGENT_SKILL_FOLDER / "graph-engineering/jobs/execute-job/GRAPH.json"
+    SKILL_LOCATION / "jobs/execute-job/GRAPH.json"
 )
 
 RUNTIME_RELATIVE_PATH = Path(".graph-engineering/runtime")
 
-JOBS_RELATIVE_PATH = AGENT_SKILL_FOLDER / "graph-engineering" / "jobs"
+JOBS_RELATIVE_PATH = SKILL_LOCATION / "jobs"
 
 # ---------------------------------------------------------------------
 # Project root
