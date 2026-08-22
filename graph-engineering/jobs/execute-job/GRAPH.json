@@ -94,8 +94,8 @@
                 "You MUST NOT execute the job process, create repository files, or run job scripts during this state."
             ],
             "on": {
-                "READ_JOB_PROCESS": {
-                    "target": "readingJobProcess",
+                "RESOLVE_EXECUTION_MODE": {
+                    "target": "resolvingExecutionMode",
                     "condition": "All required execution inputs are present and valid"
                 },
                 "REQUEST_EXECUTION_INPUT": {
@@ -124,14 +124,40 @@
                 }
             }
         },
+        "resolvingExecutionMode": {
+            "switch": "execution_mode",
+            "on": {
+                "default": {
+                    "target": "readingJobProcess"
+                },
+                "echo": {
+                    "target": "readingJobProcess"
+                },
+                "latest": {
+                    "target": "resolvingLatestOutput"
+                },
+                "iterative": {
+                    "target": "resolvingLatestOutput"
+                }
+            }
+        },
         "readingJobProcess": {
             "scripts": [
                 "scripts/read_job_process.py {job_name}"
             ],
+            "exit_codes": {
+                "0": "PROCESS_DETECTED",
+                "1": "ERROR",
+                "2": "SUB_MACHINE_DETECTED"
+            },
             "on": {
-                "DONE": {
+                "PROCESS_DETECTED": {
                     "target": "validatingJobProcess",
                     "condition": "Job process was successfully read"
+                },
+                "SUB_MACHINE_DETECTED": {
+                    "target": "spawningSubMachine",
+                    "condition": "A GRAPH.json was detected for this job"
                 },
                 "ERROR": {
                     "target": "abort",
@@ -145,8 +171,8 @@
                 "You MUST report the exact lines where you find any prohibited references to Managed Outputs."
             ],
             "on": {
-                "RESOLVE_EXECUTION_MODE": {
-                    "target": "resolvingExecutionMode",
+                "SPAWN_JOB": {
+                    "target": "spawningJob",
                     "condition": "The process is free of Managed Output references"
                 },
                 "MANAGED_OUTPUT_REFERENCE_FOUND": {
@@ -159,20 +185,20 @@
                 }
             }
         },
-        "resolvingExecutionMode": {
-            "switch": "execution_mode",
+        "spawningSubMachine": {
+            "instructions": [
+                "You MUST invoke this job as a sub-machine.",
+                "Start it by running: python3 .codex/skills/graph-engineering/scripts/execute.py --job {job_name} --parent-id {execution_id}",
+                "You MUST focus entirely on the child execution and NOT advance this parent execution until the child's terminal state explicitly instructs you to resume."
+            ],
             "on": {
-                "default": {
-                    "target": "spawningJob"
+                "SUB_MACHINE_DONE": {
+                    "target": "readingJobOutput",
+                    "condition": "The invoked sub-machine completed successfully"
                 },
-                "echo": {
-                    "target": "spawningJob"
-                },
-                "latest": {
-                    "target": "resolvingLatestOutput"
-                },
-                "iterative": {
-                    "target": "resolvingLatestOutput"
+                "SUB_MACHINE_FAILED": {
+                    "target": "abort",
+                    "condition": "The invoked sub-machine aborted or failed"
                 }
             }
         },

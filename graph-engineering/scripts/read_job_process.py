@@ -19,24 +19,50 @@ def main():
     if not jobs_dir.exists():
         fail(f"Jobs directory not found: {jobs_dir}")
 
-    job_md_path = find_job_md(jobs_dir, job_name)
+    # Search for the job directory
+    job_dir = None
+    for path in jobs_dir.rglob(job_name):
+        if path.is_dir() and path.name == job_name:
+            job_dir = path
+            break
 
-    if not job_md_path:
+    if not job_dir:
         fail(f"Job not found: {job_name}")
 
-    try:
-        content = job_md_path.read_text(encoding="utf-8")
-    except Exception as e:
-        fail(f"Error reading {job_md_path}: {e}")
+    graph_path = job_dir / "GRAPH.json"
+    job_md_path = job_dir / "JOB.md"
 
-    process_section = extract_section(content, "## Process")
+    # Sub-machine / Graph detection
+    if graph_path.is_file():
+        print(f"===== SUB-MACHINE DETECTED: {job_name} =====")
+        try:
+            rel_path = graph_path.relative_to(project_root)
+        except ValueError:
+            rel_path = graph_path
+        print(f"Graph path: {rel_path}")
+        print("This job is defined by a GRAPH.json file. It does not have a sequential markdown process.")
+        print("You MUST invoke this job as a sub-machine.")
+        print(f"===== END SUB-MACHINE: {job_name} =====")
+        sys.exit(2)
 
-    print(f"===== JOB PROCESS: {job_name} =====")
-    if process_section:
-        print(process_section)
-    else:
-        print("No process defined.")
-    print(f"===== END JOB PROCESS: {job_name} =====")
+    # Markdown Job detection
+    if job_md_path.is_file():
+        try:
+            content = job_md_path.read_text(encoding="utf-8")
+        except Exception as e:
+            fail(f"Error reading {job_md_path}: {e}")
+
+        process_section = extract_section(content, "## Process")
+
+        print(f"===== JOB PROCESS: {job_name} =====")
+        if process_section:
+            print(process_section)
+        else:
+            print("No process defined.")
+        print(f"===== END JOB PROCESS: {job_name} =====")
+        sys.exit(0)
+
+    fail(f"Neither GRAPH.json nor JOB.md found in {job_dir}")
 
 
 if __name__ == "__main__":

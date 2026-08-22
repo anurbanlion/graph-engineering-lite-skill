@@ -49,18 +49,33 @@ def validate_graph(graph):
         fail(f"Initial state '{graph['initial']}' " "does not exist in graph.states.")
 
 
-def load_graph():
+def load_graph(path=None):
+    if path is None:
+        path = GRAPH_PATH
     try:
-        with GRAPH_PATH.open(encoding="utf-8") as file:
+        with path.open(encoding="utf-8") as file:
             graph = json.load(file)
 
     except OSError as exc:
-        fail(f"Unable to read GRAPH.json: {exc}")
+        fail(f"Unable to read {path.name}: {exc}")
 
     except json.JSONDecodeError as exc:
-        fail(f"GRAPH.json contains invalid JSON: {exc}")
+        fail(f"{path.name} contains invalid JSON: {exc}")
 
     return graph
+
+
+def get_graph_for_job(job_name):
+    if not job_name:
+        return load_graph()
+    
+    job_dir = PROJECT_ROOT / ".codex" / "skills" / "graph-engineering" / "jobs" / job_name
+    specific_graph_path = job_dir / "GRAPH.json"
+    
+    if specific_graph_path.is_file():
+        return load_graph(specific_graph_path)
+    
+    return load_graph()
 
 
 # ---------------------------------------------------------------------
@@ -185,15 +200,14 @@ def execute_script_node(graph, execution):
     """
     Execute all scripts declared in a script-type node and auto-transition.
 
-    Script nodes declare a "scripts" array instead of "instructions".
-    On success (all scripts exit 0), transitions via "DONE".
-    On failure (any script exits non-zero), transitions via "ERROR".
-    If the expected transition event is missing, falls back to "abort".
+    Supports declarative exit code mapping via the "exit_codes" object.
+    If unmapped or missing, defaults to 0 -> DONE, non-zero -> ERROR.
     """
     state_name = execution["state"]
     state_definition = graph["states"][state_name]
     scripts = state_definition.get("scripts", [])
     transitions = state_definition.get("on", {})
+    exit_codes_map = state_definition.get("exit_codes")
 
     context = execution.get("context", {})
 
@@ -210,12 +224,39 @@ def execute_script_node(graph, execution):
             ["python3", full_path] + args,
             cwd=str(PROJECT_ROOT),
         )
+        
+        # Declarative exit code mapping
+        if exit_codes_map:
+            exit_code_str = str(result.returncode)
+            
+            if exit_code_str in exit_codes_map:
+                event = exit_codes_map[exit_code_str]
+                if event in transitions:
+                    continue_execution(graph, execution["execution_id"], event)
+                    return
+            
+            # Fallback for unmapped or failed transitions
+            if "ERROR" in transitions:
+                continue_execution(graph, execution["execution_id"], "ERROR")
+                return
+            
+            # Force abort if ERROR is missing
+            execution["state"] = "abort"
+            save_execution(execution)
+            emit_state(
+                graph,
+                execution,
+                previous_state=state_name,
+                event="ERROR",
+                condition=f"Unmapped exit code {exit_code_str} and no ERROR transition defined",
+            )
+            return
 
+        # Legacy / Default behavior (0 = DONE, != 0 = ERROR)
         if result.returncode != 0:
             if "ERROR" in transitions:
                 continue_execution(graph, execution["execution_id"], "ERROR")
             else:
-                # Force abort when no ERROR transition is defined.
                 execution["state"] = "abort"
                 save_execution(execution)
                 emit_state(
@@ -227,20 +268,20 @@ def execute_script_node(graph, execution):
                 )
             return
 
-    # All scripts succeeded.
-    if "DONE" in transitions:
-        continue_execution(graph, execution["execution_id"], "DONE")
-    else:
-        # Force abort when no DONE transition is defined.
-        execution["state"] = "abort"
-        save_execution(execution)
-        emit_state(
-            graph,
-            execution,
-            previous_state=state_name,
-            event="DONE",
-            condition="Script succeeded but no DONE transition defined",
-        )
+    # All scripts succeeded (default legacy behavior)
+    if not exit_codes_map:
+        if "DONE" in transitions:
+            continue_execution(graph, execution["execution_id"], "DONE")
+        else:
+            execution["state"] = "abort"
+            save_execution(execution)
+            emit_state(
+                graph,
+                execution,
+                previous_state=state_name,
+                event="DONE",
+                condition="Script succeeded but no DONE transition defined",
+            )
 
 
 def execute_switch_node(graph, execution):
@@ -290,13 +331,10 @@ def emit_state(
 
     state_definition = graph["states"][state_name]
 
-    # Script nodes are handled entirely by the runtime.
-    # No JSON metadata is emitted; the function auto-transitions.
     if "scripts" in state_definition:
         execute_script_node(graph, execution)
         return
 
-    # Switch nodes evaluate a property and auto-transition.
     if "switch" in state_definition:
         execute_switch_node(graph, execution)
         return
@@ -309,8 +347,12 @@ def emit_state(
         **state_definition,
     }
 
+    if "parent_id" in execution:
+        result["parent_id"] = execution["parent_id"]
+
     if state_name == "abort":
-        result["instructions"] = [
+        existing_instructions = result.get("instructions", [])
+        result["instructions"] = existing_instructions + [
             "You MUST tell the user concisely why the runtime failed.",
             "You MUST stop the current execution immediately after reporting the failure.",
             "You MUST NOT attempt alternative actions, fallback strategies, retries, or continue the workflow unless the user explicitly requests a new action.",
@@ -323,9 +365,19 @@ def emit_state(
         ]
 
     elif state_name == "complete":
-        result["instructions"] = [
+        existing_instructions = result.get("instructions", [])
+        result["instructions"] = existing_instructions + [
             "Tell the user the runtime completed successfully in a concise manner."
         ]
+        
+    # Intercept terminal states to output Call Stack return instructions
+    if state_name in {"abort", "complete"} and "parent_id" in execution:
+        parent_id = execution["parent_id"]
+        status_event = "SUB_MACHINE_DONE" if state_name == "complete" else "SUB_MACHINE_FAILED"
+        result["instructions"].append(
+            f"This sub-execution has finished. You MUST resume the parent execution by running: "
+            f"python3 .codex/skills/graph-engineering/scripts/execute.py {parent_id} {status_event}"
+        )
 
     print(
         json.dumps(
@@ -340,7 +392,7 @@ def emit_state(
 # ---------------------------------------------------------------------
 
 
-def start_execution(graph, execution_mode="default"):
+def start_execution(graph, job_name, execution_mode="default", parent_id=None):
     execution_id = create_execution_id()
 
     initial_state = graph["initial"]
@@ -350,7 +402,7 @@ def start_execution(graph, execution_mode="default"):
     execution = {
         "execution_id": execution_id,
         "execution_mode": execution_mode,
-        "context": {},
+        "context": {"job_name": job_name},
         "state": initial_state,
         "metadata": {
             "event": None,
@@ -369,6 +421,9 @@ def start_execution(graph, execution_mode="default"):
             }
         ],
     }
+
+    if parent_id:
+        execution["parent_id"] = parent_id
 
     save_execution(execution)
 
@@ -456,8 +511,6 @@ def continue_execution(
     }
     execution.setdefault("history", []).append(execution["metadata"])
 
-    # Iterative mode: after printing the latest output, mutate the execution mode
-    # to 'default' so the next pass through resolvingExecutionMode routes to spawningJob.
     if (
         execution.get("execution_mode") == "iterative"
         and current_state == "printingOutput"
@@ -482,22 +535,41 @@ def continue_execution(
 
 
 def main():
-    graph = load_graph()
-    validate_graph(graph)
+    if len(sys.argv) < 2:
+        fail(
+            "Usage:\n"
+            "  execute.py --job <job-name> [--execution-mode <mode>] [--parent-id <id>]\n"
+            "  execute.py <execution-id> <event> [--context key=value ...]"
+        )
 
     # -------------------------------------------------------------
-    # execute.py
-    # execute.py <execution-mode>
-    #
-    # Starts a completely new execution.
-    # Mode is optional and defaults to "default".
+    # START JOB: execute.py --job <job-name> ...
     # -------------------------------------------------------------
-
-    if len(sys.argv) <= 2 and (
-        len(sys.argv) == 1
-        or sys.argv[1] in VALID_EXECUTION_MODES
-    ):
-        execution_mode = sys.argv[1] if len(sys.argv) == 2 else "default"
+    if sys.argv[1] == "--job":
+        if len(sys.argv) < 3:
+            fail("Missing job name after --job flag.")
+        
+        job_name = sys.argv[2]
+        execution_mode = "default"
+        parent_id = None
+        
+        # Verify job folder exists
+        job_dir = PROJECT_ROOT / ".codex" / "skills" / "graph-engineering" / "jobs" / job_name
+        if not job_dir.is_dir():
+            fail(f"Job directory '{job_dir}' does not exist.")
+            
+        # Parse optional flags for initialization
+        i = 3
+        while i < len(sys.argv):
+            flag = sys.argv[i]
+            if flag == "--execution-mode" and i + 1 < len(sys.argv):
+                execution_mode = sys.argv[i + 1]
+                i += 2
+            elif flag == "--parent-id" and i + 1 < len(sys.argv):
+                parent_id = sys.argv[i + 1]
+                i += 2
+            else:
+                fail(f"Invalid or incomplete argument during initialization: {flag}")
 
         if execution_mode not in VALID_EXECUTION_MODES:
             fail(
@@ -505,15 +577,15 @@ def main():
                 f"Valid modes: {sorted(VALID_EXECUTION_MODES)}"
             )
 
-        start_execution(graph, execution_mode)
+        graph = get_graph_for_job(job_name)
+        validate_graph(graph)
+        start_execution(graph, job_name, execution_mode, parent_id)
         return
 
     # -------------------------------------------------------------
-    # execute.py <execution-id> <event> [--set key=value ...]
-    #
-    # Continues an existing execution.
+    # CONTINUE EXECUTION: execute.py <execution-id> <event> ...
     # -------------------------------------------------------------
-    elif len(sys.argv) >= 3:
+    if len(sys.argv) >= 3:
         execution_id = sys.argv[1]
         event = sys.argv[2]
         
@@ -531,20 +603,23 @@ def main():
             else:
                 fail(f"Invalid or incomplete argument: {sys.argv[i]}")
 
+        execution_peek = load_execution(execution_id)
+        job_name = execution_peek.get("context", {}).get("job_name")
+        graph = get_graph_for_job(job_name)
+        validate_graph(graph)
+        
         continue_execution(
             graph,
             execution_id,
             event,
             context_updates=context_updates,
         )
-
         return
 
     fail(
         "Usage:\n"
-        "  execute.py [execution-mode]\n"
-        "  execute.py <execution-id> <event>\n"
-        f"\nValid modes: {sorted(VALID_EXECUTION_MODES)}"
+        "  execute.py --job <job-name> [--execution-mode <mode>] [--parent-id <id>]\n"
+        "  execute.py <execution-id> <event> [--context key=value ...]"
     )
 
 

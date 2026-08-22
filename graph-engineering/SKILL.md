@@ -52,15 +52,21 @@ The agent MUST use RFC-style normative language when creating a new job, graphs 
 
 ## Executing jobs
 
-1. When the user explicitly requests execution of a named job, the agent MUST start the job execution runtime from the project root by executing this exact command:
+1. When the user explicitly requests execution of a named job, the agent MUST start the job execution runtime from the project root by executing the literal command `python3 .codex/skills/graph-engineering/scripts/execute.py --job execute-job`.
 
+Example:
 ```bash
-python3 .codex/skills/graph-engineering/scripts/execute.py [execution-mode]
+python3 .codex/skills/graph-engineering/scripts/execute.py --job execute-job
 ```
 
-- `[execution-mode]` is optional. You MUST omit it to use the `default` mode.
-- You MUST only provide an `[execution-mode]` if the user explicitly requests one of the following modes: `echo`, `latest`, or `iterative`.
+- You MAY append `--execution-mode <mode>` ONLY if the user explicitly requests a special mode: `echo`, `latest`, or `iterative`. If not requested, omit the flag to use the default mode.
 - The runtime MUST return an `execution_id` that the agent MUST use to continue this execution.
+
+
+Example (with requested mode):
+```bash
+python3 .codex/skills/graph-engineering/scripts/execute.py --job execute-job --execution-mode echo
+```
 
 2. The agent MUST execute the `instructions` returned by the current runtime state.
 3. The agent MUST NOT display intermediate runtime JSON payloads to the user.

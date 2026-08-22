@@ -64,7 +64,7 @@ The agent MUST NOT modify the following:
 
 **1. Receive Initial Context**
 
-1. The agent MUST collect any provided job name, description, legacy definition, prior conversation, requirements, constraints, or design notes.
+1. The agent MUST collect any provided job name, description, legacy definition, requirements, constraints, or design notes inside the conversation.
 2. The agent MUST treat initial context as a draft input and MUST NOT skip the interview because context was provided.
 3. The agent MUST retrieve the canonical job template using `node <skill-local-folder>/graph-engineering/scripts/read-job-template.mjs` (or a equivalent node binary call), or by reading `<skill-local-folder>/graph-engineering/templates/job-template.md`.
 
@@ -92,9 +92,9 @@ The agent MUST NOT modify the following:
 
 1. The agent SHOULD propose a kebab-case job name when no name was provided or when another kebab-case name appears to be a better option.
 2. The agent MUST confirm the final kebab-case job name and human-readable title before generating the design.
-3. The agent MUST use the final kebab-case job name as the Managed Output domain.
+3. The agent MUST use the final kebab-case job name as domain.
 
-**5. Generate Local Managed Outputs**
+**5. Generate Outputs**
 
 1. The agent MUST use the canonical job template to compile the conversation with the user into the designed job definition.
 
@@ -103,7 +103,7 @@ The agent MUST NOT modify the following:
 **6. Add Script Pseudocode**
 
 1. If the designed job requires a script, the agent MUST write the script as a `.mjs` file.
-2. If the designed job requires a script, the agent MUST include script pseudocode in the script Managed Output as a **Script Pseudocode** output category.
+2. If the designed job requires a script, the agent MUST include script pseudocode in the output as a **Script Pseudocode** output category inside a ## SCRIPTS section after ## Process.
 3. The script pseudocode MUST be written inside a code block.
 4. The script pseudocode MUST describe the script algorithm, inputs, outputs, error cases, and side effects.
 5. The script SHOULD reuse path and graph-engineering helpers from `<skill-local-folder>/graph-engineering/scripts/lib` when resolving local graph-engineering paths.
