@@ -1,5 +1,5 @@
 {
-    "id": "job-execution",
+    "id": "execute-job",
     "version": "1.0",
     "context": {
         "job_name": "string"

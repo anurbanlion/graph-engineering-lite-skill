@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import copy
 import json
 import os
 import shlex
@@ -7,619 +8,546 @@ import subprocess
 import sys
 import tempfile
 import uuid
+from dataclasses import dataclass
 from datetime import datetime, timezone
+from typing import Any, Literal, Optional
 
 from lib.errors import fail
 from lib.paths import (
-    EXECUTE_JOB_GRAPH_RELATIVE_PATH,
     RUNTIME_RELATIVE_PATH,
     SKILL_LOCATION,
+    find_job_dir,
+    get_jobs_dir,
     get_project_root,
 )
 
-# ---------------------------------------------------------------------
-# Project configuration
-# ---------------------------------------------------------------------
 
 PROJECT_ROOT = get_project_root()
-
-GRAPH_PATH = PROJECT_ROOT / EXECUTE_JOB_GRAPH_RELATIVE_PATH
-
-MEMORY_DIR = PROJECT_ROOT / RUNTIME_RELATIVE_PATH
-
+SNAPSHOT_DIR = PROJECT_ROOT / RUNTIME_RELATIVE_PATH
 VALID_EXECUTION_MODES = {"default", "echo", "latest", "iterative"}
 
-# ---------------------------------------------------------------------
-# Utilities
-# ---------------------------------------------------------------------
+Graph = dict[str, Any]
+Snapshot = dict[str, Any]
+State = dict[str, Any]
+StateType = Literal["script", "switch", "other"]
 
 
-def now_iso():
+@dataclass(frozen=True)
+class NewExecutionInputs:
+    execution_type: Literal["new"]
+    job_name: str
+    execution_mode: str
+    parent_id: Optional[str]
+
+
+@dataclass(frozen=True)
+class ExistingExecutionInputs:
+    execution_type: Literal["existing"]
+    execution_id: str
+    transition_event: str
+    context_updates: dict[str, str]
+
+
+CommandInputs = NewExecutionInputs | ExistingExecutionInputs
+
+
+def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def validate_graph(graph):
-    if "initial" not in graph:
-        fail("GRAPH.json does not define 'initial'.")
+def parse_command_line_inputs(argv: list[str]) -> CommandInputs:
+    if len(argv) < 2:
+        fail(usage())
 
-    if "states" not in graph:
-        fail("GRAPH.json does not define 'states'.")
+    if argv[1] == "--job":
+        if len(argv) < 3:
+            fail("Missing job name after --job flag.")
 
-    if graph["initial"] not in graph["states"]:
-        fail(f"Initial state '{graph['initial']}' " "does not exist in graph.states.")
+        job_name = argv[2]
+        execution_mode = "default"
+        parent_id = None
+        index = 3
+
+        while index < len(argv):
+            flag = argv[index]
+            if flag == "--execution-mode" and index + 1 < len(argv):
+                execution_mode = argv[index + 1]
+                index += 2
+            elif flag == "--parent-id" and index + 1 < len(argv):
+                parent_id = argv[index + 1]
+                index += 2
+            else:
+                fail(f"Invalid or incomplete initialization argument: {flag}")
+
+        return NewExecutionInputs(
+            execution_type="new",
+            job_name=job_name,
+            execution_mode=execution_mode,
+            parent_id=parent_id,
+        )
+
+    if len(argv) < 3:
+        fail(usage())
+
+    execution_id = argv[1]
+    transition_event = argv[2]
+    context_updates: dict[str, str] = {}
+    index = 3
+
+    while index < len(argv):
+        if argv[index] != "--context" or index + 1 >= len(argv):
+            fail(f"Invalid or incomplete argument: {argv[index]}")
+
+        key_value = argv[index + 1]
+        if "=" not in key_value:
+            fail(
+                "Invalid format for --context, expected key=value "
+                f"but got: {key_value}"
+            )
+
+        key, value = key_value.split("=", 1)
+        context_updates[key] = value
+        index += 2
+
+    return ExistingExecutionInputs(
+        execution_type="existing",
+        execution_id=execution_id,
+        transition_event=transition_event,
+        context_updates=context_updates,
+    )
 
 
-def load_graph(path=None):
-    if path is None:
-        path = GRAPH_PATH
+def validate_inputs(inputs: CommandInputs) -> None:
+    if inputs.execution_type == "new":
+        if not inputs.job_name:
+            fail("A job name is required to start an execution.")
+        if inputs.execution_mode not in VALID_EXECUTION_MODES:
+            fail(
+                f"Invalid execution mode '{inputs.execution_mode}'. "
+                f"Valid modes: {sorted(VALID_EXECUTION_MODES)}"
+            )
+        if inputs.parent_id:
+            validate_execution_id(inputs.parent_id)
+        return
+
+    if not inputs.transition_event:
+        fail("A transition event is required to continue an execution.")
+    validate_execution_id(inputs.execution_id)
+
+
+def usage() -> str:
+    return (
+        "Usage:\n"
+        "  execute_v2.py --job <job-name> "
+        "[--execution-mode <mode>] [--parent-id <id>]\n"
+        "  execute_v2.py <execution-id> <event> "
+        "[--context key=value ...]"
+    )
+
+
+def load_graph(path: Any) -> Graph:
     try:
         with path.open(encoding="utf-8") as file:
             graph = json.load(file)
-
     except OSError as exc:
         fail(f"Unable to read {path.name}: {exc}")
-
     except json.JSONDecodeError as exc:
         fail(f"{path.name} contains invalid JSON: {exc}")
+
+    if "initial" not in graph:
+        fail("GRAPH.json does not define 'initial'.")
+    if "states" not in graph:
+        fail("GRAPH.json does not define 'states'.")
+    if graph["initial"] not in graph["states"]:
+        fail(f"Initial state '{graph['initial']}' does not exist in graph.states.")
 
     return graph
 
 
-def get_graph_for_job(job_name):
-    if not job_name:
-        return load_graph()
-    
-    job_dir = PROJECT_ROOT / ".codex" / "skills" / "graph-engineering" / "jobs" / job_name
-    specific_graph_path = job_dir / "GRAPH.json"
-    
-    if specific_graph_path.is_file():
-        return load_graph(specific_graph_path)
-    
-    return load_graph()
+def resolve_and_load_job_graph(job_name: str) -> Graph:
+    jobs_dir = get_jobs_dir(PROJECT_ROOT)
+    job_dir = find_job_dir(jobs_dir, job_name)
+    if job_dir:
+        graph_path = job_dir / "GRAPH.json"
+        if graph_path.is_file():
+            return load_graph(graph_path)
+
+    fail(
+        f"GRAPH.json not found for job '{job_name}'. "
+        "Cannot execute as a state machine."
+    )
 
 
-# ---------------------------------------------------------------------
-# Execution IDs
-# ---------------------------------------------------------------------
-
-
-def create_execution_id():
-    """
-    Generates a short opaque execution ID.
-
-    Example:
-        exec-a91f37c8
-    """
+def create_execution_id() -> str:
     return f"exec-{uuid.uuid4().hex[:8]}"
 
 
-def validate_execution_id(execution_id):
+def validate_execution_id(execution_id: str) -> None:
     if not execution_id.startswith("exec-"):
         fail("Invalid execution-id.")
 
     allowed = set(
-        "abcdefghijklmnopqrstuvwxyz" "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "0123456789-_"
+        "abcdefghijklmnopqrstuvwxyz"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "0123456789-_"
     )
-
     if any(character not in allowed for character in execution_id):
         fail("Invalid execution-id.")
 
 
-def execution_path(execution_id):
+def snapshot_path(execution_id: str) -> Any:
     validate_execution_id(execution_id)
-
-    return MEMORY_DIR / f"{execution_id}.json"
-
-
-# ---------------------------------------------------------------------
-# Execution memory
-# ---------------------------------------------------------------------
+    return SNAPSHOT_DIR / f"{execution_id}.json"
 
 
-def load_execution(execution_id):
-    path = execution_path(execution_id)
+def create_initial_snapshot(
+    graph: Graph,
+    job_name: str,
+    execution_mode: str,
+    parent_id: Optional[str] = None,
+) -> Snapshot:
+    initial_state = graph["initial"]
+    transition = {
+        "event": None,
+        "from": None,
+        "to": initial_state,
+        "condition": None,
+        "at": now_iso(),
+    }
+    snapshot: Snapshot = {
+        "execution_id": create_execution_id(),
+        "machine": job_name,
+        "execution_mode": execution_mode,
+        "context": {"job_name": job_name},
+        "state": initial_state,
+        "metadata": transition,
+        "history": [transition.copy()],
+    }
+    if parent_id:
+        snapshot["parent_id"] = parent_id
+    return snapshot
 
+
+def get_current_snapshot(execution_id: str) -> Snapshot:
+    path = snapshot_path(execution_id)
     if not path.is_file():
         fail(f"Execution '{execution_id}' does not exist.")
 
     try:
         with path.open(encoding="utf-8") as file:
-            execution = json.load(file)
-
+            snapshot = json.load(file)
     except OSError as exc:
-        fail(f"Unable to read execution " f"'{execution_id}': {exc}")
-
+        fail(f"Unable to read execution '{execution_id}': {exc}")
     except json.JSONDecodeError as exc:
-        fail(f"Execution memory for " f"'{execution_id}' is corrupted: {exc}")
+        fail(f"Execution memory for '{execution_id}' is corrupted: {exc}")
 
-    if execution.get("execution_id") != execution_id:
-        fail(f"Execution memory for " f"'{execution_id}' is inconsistent.")
-
-    if "state" not in execution:
-        fail(f"Execution '{execution_id}' " "does not contain a state.")
-
-    return execution
+    if snapshot.get("execution_id") != execution_id:
+        fail(f"Execution memory for '{execution_id}' is inconsistent.")
+    if "state" not in snapshot:
+        fail(f"Execution '{execution_id}' does not contain a state.")
+    return snapshot
 
 
-def save_execution(execution):
-    """
-    Atomically saves execution state.
 
-    A temporary file is written first and then moved over
-    the previous execution file with os.replace().
-    """
-    MEMORY_DIR.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
 
-    path = execution_path(execution["execution_id"])
 
-    fd, temporary_path = tempfile.mkstemp(
-        prefix=f".{execution['execution_id']}.",
+def get_job_name_from_snapshot(snapshot: Snapshot) -> str:
+    job_name = snapshot.get("machine") or snapshot.get(
+        "context", {}
+    ).get("job_name")
+    if not job_name:
+        fail(
+            f"Execution '{snapshot['execution_id']}' does not identify its job."
+        )
+    return job_name
+
+
+def update_snapshot(
+    snapshot: Snapshot,
+    graph: Graph,
+    transition_event: Optional[str] = None,
+    context_updates: Optional[dict[str, str]] = None,
+) -> None:
+    next_snapshot = copy.deepcopy(snapshot)
+    if context_updates:
+        next_snapshot.setdefault("context", {}).update(context_updates)
+
+    if transition_event is not None:
+        current_state_name = next_snapshot["state"]
+        current_state = get_current_state(next_snapshot, graph)
+
+        if current_state_name in {"complete", "abort"}:
+            fail(
+                f"Execution '{next_snapshot['execution_id']}' is already "
+                f"terminal in state '{current_state_name}'."
+            )
+
+        transitions = current_state.get("on", {})
+        if transition_event in transitions:
+            transition_definition = transitions[transition_event]
+        elif transition_event == "ERROR":
+            transition_definition = {
+                "target": "abort",
+                "condition": (
+                    f"Transition 'ERROR' is not defined in state "
+                    f"'{current_state_name}'"
+                ),
+            }
+        else:
+            fail(
+                f"Event '{transition_event}' is not valid for execution "
+                f"'{next_snapshot['execution_id']}'. "
+                f"Allowed events: {list(transitions.keys())}"
+            )
+
+        if "target" not in transition_definition:
+            fail(
+                f"Transition '{transition_event}' from state "
+                f"'{current_state_name}' does not define 'target'."
+            )
+
+        next_state_name = transition_definition["target"]
+        if next_state_name not in graph["states"]:
+            fail(
+                f"Transition '{transition_event}' from state "
+                f"'{current_state_name}' targets unknown state "
+                f"'{next_state_name}'."
+            )
+
+        transition = {
+            "event": transition_event,
+            "from": current_state_name,
+            "to": next_state_name,
+            "condition": transition_definition.get("condition"),
+            "at": now_iso(),
+        }
+        next_snapshot["state"] = next_state_name
+        next_snapshot["metadata"] = transition
+        next_snapshot.setdefault("history", []).append(transition.copy())
+
+        if (
+            next_snapshot.get("execution_mode") == "iterative"
+            and current_state_name == "printingOutput"
+            and transition_event == "RESOLVE_EXECUTION_MODE"
+        ):
+            next_snapshot["execution_mode"] = "default"
+
+    save_snapshot(next_snapshot)
+    current_state = get_current_state(next_snapshot, graph)
+    state_type = resolve_state_type(current_state)
+
+    if state_type == "script":
+        exit_code = execute_script(current_state, next_snapshot)
+        next_event = resolve_transition_event(current_state, exit_code)
+        update_snapshot(next_snapshot, graph, next_event)
+        return
+
+    if state_type == "switch":
+        next_event = evaluate_switch(current_state, next_snapshot)
+        update_snapshot(next_snapshot, graph, next_event)
+        return
+
+    print_current_state(current_state, next_snapshot)
+
+
+def save_snapshot(snapshot: Snapshot) -> None:
+    SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
+    path = snapshot_path(snapshot["execution_id"])
+    file_descriptor, temporary_path = tempfile.mkstemp(
+        prefix=f".{snapshot['execution_id']}.",
         suffix=".tmp",
-        dir=MEMORY_DIR,
+        dir=SNAPSHOT_DIR,
     )
 
     try:
         with os.fdopen(
-            fd,
+            file_descriptor,
             "w",
             encoding="utf-8",
         ) as file:
-            json.dump(
-                execution,
-                file,
-                indent=2,
-            )
-
+            json.dump(snapshot, file, indent=2)
             file.write("\n")
             file.flush()
             os.fsync(file.fileno())
-
-        os.replace(
-            temporary_path,
-            path,
-        )
-
+        os.replace(temporary_path, path)
     except Exception:
         try:
             os.unlink(temporary_path)
         except OSError:
             pass
-
         raise
 
 
-# ---------------------------------------------------------------------
-# Script node execution
-# ---------------------------------------------------------------------
-
-
-def execute_script_node(graph, execution):
-    """
-    Execute all scripts declared in a script-type node and auto-transition.
-
-    Supports declarative exit code mapping via the "exit_codes" object.
-    If unmapped or missing, defaults to 0 -> DONE, non-zero -> ERROR.
-    """
-    state_name = execution["state"]
-    state_definition = graph["states"][state_name]
-    scripts = state_definition.get("scripts", [])
-    transitions = state_definition.get("on", {})
-    exit_codes_map = state_definition.get("exit_codes")
-
-    context = execution.get("context", {})
-
-    for script_cmd in scripts:
-        formatted_cmd = script_cmd.format(**context)
-        parts = shlex.split(formatted_cmd)
-        
-        script_rel_path = parts[0]
-        args = parts[1:]
-
-        full_path = str(PROJECT_ROOT / SKILL_LOCATION / script_rel_path.lstrip("/"))
-
-        result = subprocess.run(
-            ["python3", full_path] + args,
-            cwd=str(PROJECT_ROOT),
-        )
-        
-        # Declarative exit code mapping
-        if exit_codes_map:
-            exit_code_str = str(result.returncode)
-            
-            if exit_code_str in exit_codes_map:
-                event = exit_codes_map[exit_code_str]
-                if event in transitions:
-                    continue_execution(graph, execution["execution_id"], event)
-                    return
-            
-            # Fallback for unmapped or failed transitions
-            if "ERROR" in transitions:
-                continue_execution(graph, execution["execution_id"], "ERROR")
-                return
-            
-            # Force abort if ERROR is missing
-            execution["state"] = "abort"
-            save_execution(execution)
-            emit_state(
-                graph,
-                execution,
-                previous_state=state_name,
-                event="ERROR",
-                condition=f"Unmapped exit code {exit_code_str} and no ERROR transition defined",
-            )
-            return
-
-        # Legacy / Default behavior (0 = DONE, != 0 = ERROR)
-        if result.returncode != 0:
-            if "ERROR" in transitions:
-                continue_execution(graph, execution["execution_id"], "ERROR")
-            else:
-                execution["state"] = "abort"
-                save_execution(execution)
-                emit_state(
-                    graph,
-                    execution,
-                    previous_state=state_name,
-                    event="ERROR",
-                    condition="Script failed and no ERROR transition defined",
-                )
-            return
-
-    # All scripts succeeded (default legacy behavior)
-    if not exit_codes_map:
-        if "DONE" in transitions:
-            continue_execution(graph, execution["execution_id"], "DONE")
-        else:
-            execution["state"] = "abort"
-            save_execution(execution)
-            emit_state(
-                graph,
-                execution,
-                previous_state=state_name,
-                event="DONE",
-                condition="Script succeeded but no DONE transition defined",
-            )
-
-
-def execute_switch_node(graph, execution):
-    state_name = execution["state"]
-    state_definition = graph["states"][state_name]
-    switch_key = state_definition["switch"]
-    
-    parts = switch_key.split(".")
-    val = execution
-    for p in parts:
-        if isinstance(val, dict):
-            val = val.get(p, {})
-        else:
-            fail(f"Could not resolve switch key '{switch_key}' at '{p}'.")
-    
-    if not isinstance(val, str):
-        fail(f"Switch key '{switch_key}' resolved to non-string value: {val}")
-
-    if val in state_definition.get("on", {}):
-        continue_execution(graph, execution["execution_id"], val)
-    else:
-        fail(
-            f"Switch value '{val}' (from '{switch_key}') has no "
-            f"matching transition in state '{state_name}'."
-        )
-
-
-# ---------------------------------------------------------------------
-# State output
-# ---------------------------------------------------------------------
-
-
-def emit_state(
-    graph,
-    execution,
-    previous_state=None,
-    event=None,
-    condition=None,
-):
-    state_name = execution["state"]
-
+def get_current_state(snapshot: Snapshot, graph: Graph) -> State:
+    state_name = snapshot["state"]
     if state_name not in graph["states"]:
         fail(
-            f"Execution '{execution['execution_id']}' "
-            f"references unknown state '{state_name}'."
+            f"Execution '{snapshot['execution_id']}' references "
+            f"unknown state '{state_name}'."
         )
+    return graph["states"][state_name]
 
-    state_definition = graph["states"][state_name]
 
-    if "scripts" in state_definition:
-        execute_script_node(graph, execution)
-        return
+def resolve_state_type(current_state: State) -> StateType:
+    if "scripts" in current_state:
+        return "script"
+    if "switch" in current_state:
+        return "switch"
+    return "other"
 
-    if "switch" in state_definition:
-        execute_switch_node(graph, execution)
-        return
 
+def execute_script(
+    current_state: State,
+    snapshot: Snapshot,
+) -> int:
+    last_exit_code = 0
+    context = snapshot.get("context", {})
+
+    for script_command in current_state.get("scripts", []):
+        formatted_command = script_command.format(**context)
+        command_parts = shlex.split(formatted_command)
+        if not command_parts:
+            fail("Script state contains an empty command.")
+
+        script_path = command_parts[0]
+        arguments = command_parts[1:]
+        full_path = str(
+            PROJECT_ROOT / SKILL_LOCATION / script_path.lstrip("/")
+        )
+        result = subprocess.run(
+            ["python3", full_path] + arguments,
+            cwd=str(PROJECT_ROOT),
+        )
+        last_exit_code = result.returncode
+
+        if current_state.get("exit_codes") or last_exit_code != 0:
+            return last_exit_code
+
+    return last_exit_code
+
+
+def resolve_transition_event(
+    current_state: State,
+    exit_code: int,
+) -> str:
+    transitions = current_state.get("on", {})
+    exit_codes = current_state.get("exit_codes")
+
+    if exit_codes:
+        transition_event = exit_codes.get(str(exit_code))
+        if transition_event in transitions:
+            return transition_event
+        return "ERROR"
+
+    if exit_code != 0:
+        return "ERROR"
+    if "DONE" in transitions:
+        return "DONE"
+    return "ERROR"
+
+
+def evaluate_switch(
+    current_state: State,
+    snapshot: Snapshot,
+) -> str:
+    switch_key = current_state["switch"]
+    value: Any = snapshot
+
+    for part in switch_key.split("."):
+        if not isinstance(value, dict):
+            fail(f"Could not resolve switch key '{switch_key}' at '{part}'.")
+        value = value.get(part, {})
+
+    if not isinstance(value, str):
+        fail(
+            f"Switch key '{switch_key}' resolved to "
+            f"non-string value: {value}"
+        )
+    if value not in current_state.get("on", {}):
+        fail(
+            f"Switch value '{value}' from '{switch_key}' has no "
+            f"matching transition in state '{snapshot['state']}'."
+        )
+    return value
+
+
+def print_current_state(
+    current_state: State,
+    snapshot: Snapshot,
+) -> None:
+    state_name = snapshot["state"]
     result = {
-        "execution_id": execution["execution_id"],
-        "execution_mode": execution.get("execution_mode", "default"),
-        "context": execution.get("context", {}),
+        "execution_id": snapshot["execution_id"],
+        "execution_mode": snapshot.get("execution_mode", "default"),
+        "context": snapshot.get("context", {}),
         "state": state_name,
-        **state_definition,
+        **current_state,
     }
 
-    if "parent_id" in execution:
-        result["parent_id"] = execution["parent_id"]
+    if "parent_id" in snapshot:
+        result["parent_id"] = snapshot["parent_id"]
 
+    metadata = snapshot.get("metadata", {})
     if state_name == "abort":
-        existing_instructions = result.get("instructions", [])
-        result["instructions"] = existing_instructions + [
+        result["instructions"] = result.get("instructions", []) + [
             "You MUST tell the user concisely why the runtime failed.",
             "You MUST stop the current execution immediately after reporting the failure.",
             "You MUST NOT attempt alternative actions, fallback strategies, retries, or continue the workflow unless the user explicitly requests a new action.",
             (
                 "Failure occurred while transitioning "
-                f"from state '{previous_state}' "
-                f"via event '{event}'."
+                f"from state '{metadata.get('from')}' "
+                f"via event '{metadata.get('event')}'."
             ),
-            f"Condition for failure: {condition}",
+            f"Condition for failure: {metadata.get('condition')}",
         ]
-
     elif state_name == "complete":
-        existing_instructions = result.get("instructions", [])
-        result["instructions"] = existing_instructions + [
+        result["instructions"] = result.get("instructions", []) + [
             "Tell the user the runtime completed successfully in a concise manner."
         ]
-        
-    # Intercept terminal states to output Call Stack return instructions
-    if state_name in {"abort", "complete"} and "parent_id" in execution:
-        parent_id = execution["parent_id"]
-        status_event = "SUB_MACHINE_DONE" if state_name == "complete" else "SUB_MACHINE_FAILED"
-        result["instructions"].append(
-            f"This sub-execution has finished. You MUST resume the parent execution by running: "
-            f"python3 .codex/skills/graph-engineering/scripts/execute.py {parent_id} {status_event}"
+
+    if state_name in {"abort", "complete"} and "parent_id" in snapshot:
+        parent_id = snapshot["parent_id"]
+        status_event = (
+            "SUB_MACHINE_DONE"
+            if state_name == "complete"
+            else "SUB_MACHINE_FAILED"
+        )
+        result.setdefault("instructions", []).append(
+            "This sub-execution has finished. You MUST resume the parent "
+            "execution by running: "
+            f"python3 working/scripts/execute_v2.py "
+            f"{parent_id} {status_event}"
         )
 
-    print(
-        json.dumps(
-            result,
-            indent=2,
-        )
-    )
+    print(json.dumps(result, indent=2))
 
 
-# ---------------------------------------------------------------------
-# Start execution
-# ---------------------------------------------------------------------
+def main() -> None:
+    inputs = parse_command_line_inputs(sys.argv)
+    validate_inputs(inputs)
 
-
-def start_execution(graph, job_name, execution_mode="default", parent_id=None):
-    execution_id = create_execution_id()
-
-    initial_state = graph["initial"]
-
-    timestamp = now_iso()
-
-    execution = {
-        "execution_id": execution_id,
-        "execution_mode": execution_mode,
-        "context": {"job_name": job_name},
-        "state": initial_state,
-        "metadata": {
-            "event": None,
-            "from": None,
-            "to": initial_state,
-            "condition": None,
-            "at": timestamp,
-        },
-        "history": [
-            {
-                "event": None,
-                "from": None,
-                "to": initial_state,
-                "condition": None,
-                "at": timestamp,
-            }
-        ],
-    }
-
-    if parent_id:
-        execution["parent_id"] = parent_id
-
-    save_execution(execution)
-
-    emit_state(
-        graph,
-        execution,
-    )
-
-
-# ---------------------------------------------------------------------
-# Continue execution
-# ---------------------------------------------------------------------
-
-
-def continue_execution(
-    graph,
-    execution_id,
-    event,
-    context_updates=None,
-):
-    execution = load_execution(execution_id)
-
-    if context_updates:
-        execution.setdefault("context", {}).update(context_updates)
-
-    current_state = execution["state"]
-
-    if current_state not in graph["states"]:
-        fail(
-            f"Execution '{execution_id}' " f"contains unknown state '{current_state}'."
-        )
-
-    if current_state in {"complete", "abort"}:
-        fail(
-            f"Execution '{execution_id}' "
-            f"is already terminal in state "
-            f"'{current_state}'."
-        )
-
-    state_definition = graph["states"][current_state]
-
-    transitions = state_definition.get(
-        "on",
-        {},
-    )
-
-    if event not in transitions:
-        allowed_events = list(transitions.keys())
-
-        fail(
-            f"Event '{event}' is not valid for "
-            f"execution '{execution_id}'. "
-            f"Allowed events: {allowed_events}"
-        )
-
-    transition_definition = transitions[event]
-
-    if "target" not in transition_definition:
-        fail(
-            f"Transition '{event}' from state "
-            f"'{current_state}' does not define "
-            "'target'."
-        )
-
-    next_state = transition_definition["target"]
-
-    condition = transition_definition.get("condition")
-
-    if next_state not in graph["states"]:
-        fail(
-            f"Transition '{event}' from state "
-            f"'{current_state}' targets unknown "
-            f"state '{next_state}'."
-        )
-
-    timestamp = now_iso()
-
-    execution["state"] = next_state
-    execution["metadata"] = {
-        "event": event,
-        "from": current_state,
-        "to": next_state,
-        "condition": condition,
-        "at": timestamp,
-    }
-    execution.setdefault("history", []).append(execution["metadata"])
-
-    if (
-        execution.get("execution_mode") == "iterative"
-        and current_state == "printingOutput"
-        and event == "RESOLVE_EXECUTION_MODE"
-    ):
-        execution["execution_mode"] = "default"
-
-    save_execution(execution)
-
-    emit_state(
-        graph,
-        execution,
-        previous_state=current_state,
-        event=event,
-        condition=condition,
-    )
-
-
-# ---------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------
-
-
-def main():
-    if len(sys.argv) < 2:
-        fail(
-            "Usage:\n"
-            "  execute.py --job <job-name> [--execution-mode <mode>] [--parent-id <id>]\n"
-            "  execute.py <execution-id> <event> [--context key=value ...]"
-        )
-
-    # -------------------------------------------------------------
-    # START JOB: execute.py --job <job-name> ...
-    # -------------------------------------------------------------
-    if sys.argv[1] == "--job":
-        if len(sys.argv) < 3:
-            fail("Missing job name after --job flag.")
-        
-        job_name = sys.argv[2]
-        execution_mode = "default"
-        parent_id = None
-        
-        # Verify job folder exists
-        job_dir = PROJECT_ROOT / ".codex" / "skills" / "graph-engineering" / "jobs" / job_name
-        if not job_dir.is_dir():
-            fail(f"Job directory '{job_dir}' does not exist.")
-            
-        # Parse optional flags for initialization
-        i = 3
-        while i < len(sys.argv):
-            flag = sys.argv[i]
-            if flag == "--execution-mode" and i + 1 < len(sys.argv):
-                execution_mode = sys.argv[i + 1]
-                i += 2
-            elif flag == "--parent-id" and i + 1 < len(sys.argv):
-                parent_id = sys.argv[i + 1]
-                i += 2
-            else:
-                fail(f"Invalid or incomplete argument during initialization: {flag}")
-
-        if execution_mode not in VALID_EXECUTION_MODES:
-            fail(
-                f"Invalid execution mode '{execution_mode}'. "
-                f"Valid modes: {sorted(VALID_EXECUTION_MODES)}"
-            )
-
-        graph = get_graph_for_job(job_name)
-        validate_graph(graph)
-        start_execution(graph, job_name, execution_mode, parent_id)
-        return
-
-    # -------------------------------------------------------------
-    # CONTINUE EXECUTION: execute.py <execution-id> <event> ...
-    # -------------------------------------------------------------
-    if len(sys.argv) >= 3:
-        execution_id = sys.argv[1]
-        event = sys.argv[2]
-        
-        context_updates = {}
-        i = 3
-        while i < len(sys.argv):
-            if sys.argv[i] == "--context" and i + 1 < len(sys.argv):
-                key_value = sys.argv[i+1]
-                if "=" in key_value:
-                    k, v = key_value.split("=", 1)
-                    context_updates[k] = v
-                else:
-                    fail(f"Invalid format for --context, expected key=value but got: {key_value}")
-                i += 2
-            else:
-                fail(f"Invalid or incomplete argument: {sys.argv[i]}")
-
-        execution_peek = load_execution(execution_id)
-        job_name = execution_peek.get("context", {}).get("job_name")
-        graph = get_graph_for_job(job_name)
-        validate_graph(graph)
-        
-        continue_execution(
+    if inputs.execution_type == "new":
+        graph = resolve_and_load_job_graph(inputs.job_name)
+        snapshot = create_initial_snapshot(
             graph,
-            execution_id,
-            event,
-            context_updates=context_updates,
+            inputs.job_name,
+            inputs.execution_mode,
+            inputs.parent_id,
         )
-        return
+        transition_event = None
+        context_updates = None
+    else:
+        snapshot = get_current_snapshot(inputs.execution_id)
+        job_name = get_job_name_from_snapshot(snapshot)
+        graph = resolve_and_load_job_graph(job_name)
+        transition_event = inputs.transition_event
+        context_updates = inputs.context_updates
 
-    fail(
-        "Usage:\n"
-        "  execute.py --job <job-name> [--execution-mode <mode>] [--parent-id <id>]\n"
-        "  execute.py <execution-id> <event> [--context key=value ...]"
+    update_snapshot(
+        snapshot,
+        graph,
+        transition_event,
+        context_updates=context_updates,
     )
 
 

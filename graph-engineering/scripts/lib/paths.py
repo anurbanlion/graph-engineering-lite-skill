@@ -13,10 +13,6 @@ AGENT_SKILL_FOLDER = Path(
 
 SKILL_LOCATION = AGENT_SKILL_FOLDER / "graph-engineering"
 
-EXECUTE_JOB_GRAPH_RELATIVE_PATH = (
-    SKILL_LOCATION / "jobs/execute-job/GRAPH.json"
-)
-
 RUNTIME_RELATIVE_PATH = Path(".graph-engineering/runtime")
 
 JOBS_RELATIVE_PATH = SKILL_LOCATION / "jobs"
@@ -29,17 +25,9 @@ JOBS_RELATIVE_PATH = SKILL_LOCATION / "jobs"
 def get_project_root():
     """Resolve and validate the project root from the current working directory."""
     project_root = Path.cwd().resolve()
-
-    # Note: This validation should done againt SKILL.md and a more specific validation should be done against execute-job/GRAPH.json
-    # once we change the api to execute --job <job-name>
-    framework_path = project_root / EXECUTE_JOB_GRAPH_RELATIVE_PATH
-
-    if not framework_path.is_file():
-        fail(
-            "Unable to locate Graph Engineering framework. "
-            f"Expected file at: '{framework_path}'."
-        )
-
+    # Simple validation that we are in the project root
+    if not (project_root / ".codex").is_dir():
+        fail("Unable to locate .codex directory. Must be run from project root.")
     return project_root
 
 
@@ -57,10 +45,18 @@ def get_jobs_dir(project_root):
 # Job file resolution
 # ---------------------------------------------------------------------
 
+def find_job_dir(jobs_dir, job_name):
+    """Find the directory for the given job logical identifier."""
+    for path in jobs_dir.rglob(job_name):
+        if path.is_dir() and path.name == job_name:
+            return path
+    return None
 
 def find_job_md(jobs_dir, job_name):
     """Find the JOB.md file for the given job logical identifier."""
-    for path in jobs_dir.rglob("JOB.md"):
-        if path.parent.name == job_name:
-            return path
+    job_dir = find_job_dir(jobs_dir, job_name)
+    if job_dir:
+        job_md = job_dir / "JOB.md"
+        if job_md.is_file():
+            return job_md
     return None

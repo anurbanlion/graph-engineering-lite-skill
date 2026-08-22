@@ -107,9 +107,7 @@ def build_output_path(
     target_dir = output_dir or Path(__file__).parent / "diagrams"
     target_dir.mkdir(parents=True, exist_ok=True)
 
-    timestamp = datetime.now().strftime(TIMESTAMP_FORMAT)
-
-    return target_dir / f"{OUTPUT_PREFIX}-{timestamp}.md"
+    return target_dir / f"{OUTPUT_PREFIX}.md"
 
 
 # ============================================================
