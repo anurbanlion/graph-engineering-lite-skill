@@ -1,0 +1,79 @@
+{
+  "id": "manage-tasks",
+  "version": "1.0",
+  "example_prompts": [
+    "Revisa las tareas pendientes de la iniciativa gtd-tool.",
+    "Añade una tarea a la iniciativa chikiarena.",
+    "Actualiza un hito de graph-engineering.",
+    "Please execute the job `manage-tasks` following this exact same command:",
+    "python3 .codex/skills/graph-engineering/scripts/execute.py --job manage-tasks",
+    "This is an exception to the job execution first step rule."
+  ],
+  "initial": "readingGlobalTaskList",
+  "states": {
+    "readingGlobalTaskList": {
+      "scripts": [
+        "scripts/read_file.py working/scripts/custom/global.md"
+      ],
+      "on": {
+        "DONE": {
+          "target": "handlingUserRequest",
+          "condition": "The global task list was read successfully"
+        },
+        "ERROR": {
+          "target": "abort",
+          "condition": "The global task list could not be read"
+        }
+      }
+    },
+    "handlingUserRequest": {
+      "instructions": [
+        "You MUST offer these initial actions: update milestones, update tasks, or execute a task.",
+        "You MUST stop and wait for the user's instruction.",
+        "When the user asks to add or update tasks, you MUST resolve the selected initiative's source from its [Task list](...) link in the global task list.",
+        "You MUST NOT modify the global task list; it is the compiled view.",
+        "You MAY follow the user request for several responses, and you MUST ask him if the request is done in each response."
+      ],
+      "on": {
+        "COMPILE_INITIATIVES": {
+          "target": "compilingInitiatives",
+          "condition": "The requested action was completed and the user is asking to continue explicitly"
+        },
+        "ERROR": {
+          "target": "abort",
+          "condition": "The requested action could not be completed"
+        }
+      }
+    },
+    "compilingInitiatives": {
+      "scripts": [
+        "scripts/custom/compile-inititatives-tasks.py working/scripts/custom/test.md"
+      ],
+      "on": {
+        "DONE": {
+          "target": "suggestingCommit",
+          "condition": "The global task list was recompiled successfully"
+        },
+        "ERROR": {
+          "target": "abort",
+          "condition": "The global task list could not be recompiled"
+        }
+      }
+    },
+    "suggestingCommit": {
+      "instructions": [
+        "Suggest commit"
+      ],
+      "on": {
+        "READ_GLOBAL_TASK_LIST": {
+          "target": "readingGlobalTaskList",
+          "condition": "Commits were suggested"
+        },
+        "ERROR": {
+          "target": "abort",
+          "condition": "The commit suggestion could not be prepared"
+        }
+      }
+    }
+  }
+}
