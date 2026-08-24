@@ -3,6 +3,7 @@
 import copy
 import json
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -25,6 +26,9 @@ from lib.paths import (
 PROJECT_ROOT = get_project_root()
 SNAPSHOT_DIR = PROJECT_ROOT / RUNTIME_RELATIVE_PATH
 VALID_EXECUTION_MODES = {"default", "echo", "latest", "iterative"}
+CONTEXT_REFERENCE_PATTERN = re.compile(
+    r"\{context\.(?P<key>[A-Za-z_][A-Za-z0-9_]*)\}"
+)
 
 Graph = dict[str, Any]
 Snapshot = dict[str, Any]
@@ -218,7 +222,6 @@ def create_initial_snapshot(
         "execution_id": create_execution_id(),
         "machine": job_name,
         "execution_mode": execution_mode,
-        "context": {"job_name": job_name},
         "state": initial_state,
         "metadata": transition,
         "history": [transition.copy()],
@@ -252,9 +255,7 @@ def get_current_snapshot(execution_id: str) -> Snapshot:
 
 
 def get_job_name_from_snapshot(snapshot: Snapshot) -> str:
-    job_name = snapshot.get("machine") or snapshot.get(
-        "context", {}
-    ).get("job_name")
+    job_name = snapshot.get("machine")
     if not job_name:
         fail(
             f"Execution '{snapshot['execution_id']}' does not identify its job."
@@ -396,15 +397,49 @@ def resolve_state_type(current_state: State) -> StateType:
     return "other"
 
 
+def resolve_script_command(script_command: str, snapshot: Snapshot) -> str:
+    """Interpolate `{context.<field>}` references from the current snapshot."""
+    def replace_reference(match: re.Match[str]) -> str:
+        reference = match.group(0)
+        key = match.group("key")
+        context = snapshot.get("context")
+        if not isinstance(context, dict):
+            fail(
+                f"Script context reference '{reference}' does not exist "
+                "in the current snapshot."
+            )
+        if key not in context:
+            fail(
+                f"Script context reference '{reference}' does not exist "
+                "in the current snapshot."
+            )
+        value = context[key]
+        if not isinstance(value, str):
+            fail(
+                f"Script context reference '{reference}' must resolve "
+                "to a string."
+            )
+        return value
+
+    interpolated_command = CONTEXT_REFERENCE_PATTERN.sub(
+        replace_reference, script_command
+    )
+    if "{" in interpolated_command or "}" in interpolated_command:
+        fail(
+            "Invalid script interpolation. Only "
+            "'{context.<field>}' references are supported."
+        )
+    return interpolated_command
+
+
 def execute_script(
     current_state: State,
     snapshot: Snapshot,
 ) -> int:
     last_exit_code = 0
-    context = snapshot.get("context", {})
 
     for script_command in current_state.get("scripts", []):
-        formatted_command = script_command.format(**context)
+        formatted_command = resolve_script_command(script_command, snapshot)
         command_parts = shlex.split(formatted_command)
         if not command_parts:
             fail("Script state contains an empty command.")

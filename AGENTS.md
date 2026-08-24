@@ -53,8 +53,7 @@ Proposed instruction update to align future behavior:
 
 When running Codex Desktop in Windows and controlling this repository through WSL:
 
-- Agents MUST NOT use a global copy of that tool or skill `apply-patch` when a locally installed copy exists.
-- Agents MUST always read the `desktop-wsl-apply-patch` skill with `wsl.exe -d distro -- cat <skill-local-folder>/desktop-wsl-apply-patch/SKILL.md`.
+- Agents MUST always read the `desktop-wsl-apply-patch` skill with `wsl.exe -d distro -- cat <skill-local-folder>/desktop-wsl-apply-patch/SKILL.md` at the start of any conversation.
 
 The `<skill-local-folder>` variable is the folder on the current project where skills are located and its location depends on the agent (ex. `.codex/skills`)
 

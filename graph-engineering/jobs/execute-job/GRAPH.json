@@ -75,7 +75,7 @@
         },
         "readingJobInputs": {
             "scripts": [
-                "scripts/read_job_inputs.py {job_name}"
+                "scripts/read_job_inputs.py {context.job_name}"
             ],
             "on": {
                 "DONE": {
@@ -143,7 +143,7 @@
         },
         "readingJobProcess": {
             "scripts": [
-                "scripts/read_job_process.py {job_name}"
+                "scripts/read_job_process.py {context.job_name}"
             ],
             "exit_codes": {
                 "0": "PROCESS_DETECTED",
@@ -188,7 +188,7 @@
         "spawningSubMachine": {
             "instructions": [
                 "You MUST invoke this job as a sub-machine.",
-                "Start it by running: python3 .codex/skills/graph-engineering/scripts/execute.py --job {job_name} --parent-id {execution_id}",
+                "Start it by running: python3 .codex/skills/graph-engineering/scripts/execute.py --job {context.job_name} --parent-id {execution_id}",
                 "You MUST focus entirely on the child execution and NOT advance this parent execution until the child's terminal state explicitly instructs you to resume."
             ],
             "on": {
@@ -222,7 +222,7 @@
         },
         "readingJobOutput": {
             "scripts": [
-                "scripts/read_job_output.py {job_name}"
+                "scripts/read_job_output.py {context.job_name}"
             ],
             "on": {
                 "DONE": {
