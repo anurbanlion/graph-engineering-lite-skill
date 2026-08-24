@@ -47,7 +47,7 @@
     },
     "compilingInitiatives": {
       "scripts": [
-        "scripts/custom/compile-inititatives-tasks.py working/scripts/custom/test.md"
+        "scripts/custom/compile-inititatives-tasks.py working/scripts/custom/global.md"
       ],
       "on": {
         "DONE": {

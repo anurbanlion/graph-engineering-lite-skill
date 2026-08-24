@@ -47,6 +47,8 @@ When a domain is provided, the agent MUST evaluate it and MAY suggest a differen
 
 1. The agent MUST propose a concise initiative description.
 2. The agent MUST propose additional context relevant to the initiative.
+3. The agent MUST identify the project's path when it is provided. When no project path is mentioned, the agent MUST set `project_path` to a clearly marked dummy placeholder.
+4. The agent MUST propose milestones whenever the initiative has identifiable phases, deliverables, or iterative goals. Each milestone MUST include a title, completion state, short description, and detailed description.
 
 ## Output
 
@@ -56,6 +58,7 @@ The job MUST produce a Managed Output containing the validated project charter. 
 ---
 title: <initiative title>
 domain: <kebab-case domain>
+project_path: <validated project path or dummy placeholder>
 description: <concise initiative description>
 ---
 
@@ -68,6 +71,14 @@ description: <concise initiative description>
 ## Context
 
 <validated context for the user and agent>
+
+## Milestones
+
+- title: <milestone title>
+  done: false
+  short_description: <concise milestone outcome>
+  description: |
+    <detailed milestone scope>
 
 ## Open Questions
 

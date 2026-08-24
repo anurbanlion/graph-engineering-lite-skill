@@ -11,6 +11,7 @@ import tempfile
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from shutil import which
 from typing import Any, Literal, Optional
 
 from lib.errors import fail
@@ -432,11 +433,19 @@ def resolve_script_command(script_command: str, snapshot: Snapshot) -> str:
     return interpolated_command
 
 
+def find_python() -> str:
+    for candidate in ("python", "python3"):
+        if which(candidate):
+            return candidate
+    fail("Python interpreter not found. Tried: python, python3.")
+
+
 def execute_script(
     current_state: State,
     snapshot: Snapshot,
 ) -> int:
     last_exit_code = 0
+    python_exe = find_python()
 
     for script_command in current_state.get("scripts", []):
         formatted_command = resolve_script_command(script_command, snapshot)
@@ -450,7 +459,7 @@ def execute_script(
             PROJECT_ROOT / SKILL_LOCATION / script_path.lstrip("/")
         )
         result = subprocess.run(
-            ["python3", full_path] + arguments,
+            [python_exe, full_path] + arguments,
             cwd=str(PROJECT_ROOT),
         )
         last_exit_code = result.returncode
