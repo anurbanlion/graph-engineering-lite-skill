@@ -7,7 +7,7 @@ stateDiagram-v2
 
     readingGlobalTaskList --> handlingUserRequest: DONE<br/>The global task list was read successfully
 
-    handlingUserRequest --> compilingInitiatives: COMPILE_INITIATIVES<br/>The requested action was completed and the user is asking to continue explicitly
+    handlingUserRequest --> compilingInitiatives: COMPILE_INITIATIVES<br/>The requested action was completed and the user says 'CONTINUE' or 'CONTINUA' literally
 
     compilingInitiatives --> suggestingCommit: DONE<br/>The global task list was recompiled successfully
 

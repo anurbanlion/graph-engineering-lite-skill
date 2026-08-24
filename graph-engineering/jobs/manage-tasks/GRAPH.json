@@ -32,12 +32,12 @@
         "You MUST stop and wait for the user's instruction.",
         "When the user asks to add or update tasks, you MUST resolve the selected initiative's source from its [Task list](...) link in the global task list.",
         "You MUST NOT modify the global task list; it is the compiled view.",
-        "You MAY follow the user request for several responses, and you MUST ask him if the request is done in each response."
+        "You MUST follow the user request, even if it is not within the initial actions, the request MAY continue for several responses, and you MUST ask him if the request is done in each response."
       ],
       "on": {
         "COMPILE_INITIATIVES": {
           "target": "compilingInitiatives",
-          "condition": "The requested action was completed and the user is asking to continue explicitly"
+          "condition": "The requested action was completed and the user says 'CONTINUE' or 'CONTINUA' literally"
         },
         "ERROR": {
           "target": "abort",
@@ -62,7 +62,8 @@
     },
     "suggestingCommit": {
       "instructions": [
-        "Suggest commit"
+        "USER: Hey, please suggest commits",
+        "The user explicity ask for you to suggest commits."
       ],
       "on": {
         "READ_GLOBAL_TASK_LIST": {

@@ -267,7 +267,7 @@
             "instructions": [
                 "If the `<domain>` is not available in the current context, you MUST transition using REQUEST_MANAGED_OUTPUT_DOMAIN inmediatly.",
                 "You MUST resolve the path for the Managed Output using the resolve-output-path script.",
-                "Use: python3 execute-job/scripts/resolve_output_path.py <domain> <job-name>"
+                "Use: python3 .codex/skills/graph-engineering/scripts/resolve_output_path.py <domain> <job-name>"
             ],
             "on": {
                 "WRITE_MANAGED_OUTPUT": {
@@ -324,7 +324,7 @@
         "resolvingLatestOutput": {
             "instructions": [
                 "You MUST locate the latest existing Managed Output for the current job and domain.",
-                "Use: python3 execute-job/scripts/print_latest_output.py <domain> <job-name>"
+                "Use: python3 .codex/skills/graph-engineering/scripts/print_latest_output.py <domain> <job-name>"
             ],
             "on": {
                 "PRINT_OUTPUT": {
