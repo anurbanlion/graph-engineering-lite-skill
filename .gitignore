@@ -6,3 +6,5 @@
 .codex/
 .graph-engineering/
 .patch-reports/
+
+__pycache__

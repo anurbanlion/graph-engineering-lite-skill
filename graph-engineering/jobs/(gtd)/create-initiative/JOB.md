@@ -41,7 +41,7 @@ When a domain is provided, the agent MUST evaluate it and MAY suggest a differen
 
 1. The agent MUST propose an initiative title and its kebab-case variant, even when the user already supplied one.
 2. The agent MUST validate the proposed title with the user.
-3. The agen must used the validated kebab-case inititative title as a domain.
+3. The agent must used the validated kebab-case initiative title as a domain.
 
 **4. Propose the Project Charter**
 

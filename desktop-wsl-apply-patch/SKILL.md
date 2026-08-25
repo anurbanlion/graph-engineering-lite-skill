@@ -75,7 +75,7 @@ sed -n -e '40,50=' -e '40,50p' target
 Created or modified:
 
 - [`working/scripts/execute.py`](working/scripts/execute.py): Added `{context.<campo>}` interpolation and removed initial `context` creation from snapshots.
-- [`working/scripts/custom/compile-inititatives-tasks.py`](working/scripts/custom/compile-inititatives-tasks.py): Changed Project folder links to omit `file://`.
+- [`working/scripts/custom/compile-initiatives-tasks.py`](working/scripts/custom/compile-initiatives-tasks.py): Changed Project folder links to omit `file://`.
 - [`.graph-engineering/runs/gtd-tool/add-tasks/OUTPUT-20260822-2318.md`](.graph-engineering/runs/gtd-tool/add-tasks/OUTPUT-20260822-2318.md): Updated the runtime interpolation tasks.
 - [`working/scripts/custom/test.md`](working/scripts/custom/test.md): Regenerated the global initiative view.
 - [NEW] [`working/tests/test_execute.py`](working/tests/test_execute.py): Added runtime interpolation tests.
