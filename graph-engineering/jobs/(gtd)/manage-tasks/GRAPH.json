@@ -53,27 +53,16 @@
       ],
       "on": {
         "COMPILE_INITIATIVES": {
-          "target": "compilingInitiatives",
+          "target": "suggestingCommit",
           "condition": "The requested action was completed and the user says 'CONTINUE' or 'CONTINUA' literally"
+        },
+        "FINISH": {
+          "target": "complete",
+          "condition": "The user says there is nothing more to do"
         },
         "ERROR": {
           "target": "abort",
           "condition": "The requested action could not be completed"
-        }
-      }
-    },
-    "compilingInitiatives": {
-      "scripts": [
-        "scripts/custom/compile-initiatives-tasks.py working/scripts/custom/global.md"
-      ],
-      "on": {
-        "DONE": {
-          "target": "suggestingCommit",
-          "condition": "The global task list was recompiled successfully"
-        },
-        "ERROR": {
-          "target": "abort",
-          "condition": "The global task list could not be recompiled"
         }
       }
     },
