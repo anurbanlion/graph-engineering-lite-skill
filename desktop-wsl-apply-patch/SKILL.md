@@ -48,6 +48,7 @@ scripts/apply_patch /mnt/c/Users/user/projects/patchs/apply.patch.temp <target-f
 ```
 
 - If any problem occurs while using the script, the agent MUST stop execution immediately and MUST report the problem to the user.
+- Script must be called from the local skill folder (ex. `.codex/skills/desktop-wsl-apply-patch/scripts...`)
 
 4. The agent MUST verify the target after the script finishes. Verification confirms the result; it does not perform the application.
 
