@@ -69,14 +69,34 @@ def apply_temp(temp_path: Path, target_path: Path) -> int:
     except ValueError as error:
         return fail(str(error))
 
-    if not target_path.is_file():
-        return fail(f"Target file not found: {target_path}", 1)
+    target_exists = target_path.exists()
+    if target_exists and not target_path.is_file():
+        return fail(f"Target is not a file: {target_path}", 1)
+    if not target_exists and not target_path.parent.is_dir():
+        return fail(f"Target parent directory not found: {target_path.parent}", 1)
 
-    original = target_path.read_text(encoding="utf-8")
+    original = (
+        target_path.read_text(encoding="utf-8")
+        if target_exists
+        else ""
+    )
     lines = original.splitlines()
     had_trailing_newline = original.endswith("\n")
+    if not target_exists:
+        if len(hunks) != 1:
+            return fail(
+                "A missing target can only be created from one patch hunk.",
+                1,
+            )
+        hunks = [(1, 0, hunks[0][2])]
+
     previous_end = 0
     for start, end, _ in hunks:
+        creates_empty_target = start == 1 and end == 0
+        if creates_empty_target:
+            if len(hunks) != 1 or lines:
+                return fail(f"Invalid target range: {start}-{end}", 1)
+            continue
         if start < 1 or end < start or end > len(lines):
             return fail(f"Invalid target range: {start}-{end}", 1)
         if start <= previous_end:
@@ -85,10 +105,13 @@ def apply_temp(temp_path: Path, target_path: Path) -> int:
 
     report_text = build_diff_report(target_path, hunks, lines)
     for start, end, replacement in reversed(hunks):
-        lines[start - 1:end] = replacement
+        if start == 1 and end == 0:
+            lines[0:0] = replacement
+        else:
+            lines[start - 1:end] = replacement
 
     updated = "\n".join(lines)
-    if had_trailing_newline:
+    if had_trailing_newline or not original:
         updated += "\n"
 
     with tempfile.NamedTemporaryFile(

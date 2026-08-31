@@ -1,11 +1,29 @@
 {
     "id": "execute-job",
     "version": "1.0",
-    "context": {
+    "context_schema": {
         "job_name": "string"
     },
-    "initial": "discoveringJobs",
+    "context": {
+        "job_name": ""
+    },
+    "initial": "resolvingJob",
     "states": {
+        "resolvingJob": {
+            "scripts": [
+                "scripts/check_job.py {context.job_name}"
+            ],
+            "on": {
+                "DONE": {
+                    "target": "readingJobInputs",
+                    "condition": "The requested job resolves uniquely"
+                },
+                "ERROR": {
+                    "target": "discoveringJobs",
+                    "condition": "No requested job was provided or it could not resolve uniquely"
+                }
+            }
+        },
         "discoveringJobs": {
             "scripts": [
                 "scripts/list_jobs.py"

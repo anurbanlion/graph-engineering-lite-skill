@@ -61,6 +61,9 @@ The `<skill-local-folder>` variable is the folder on the current project where s
 
 - Agents MUST NOT run `git push`.
 
+- When controlling a WSL repository through Codex Desktop, agents MUST invoke WSL binaries directly with `wsl.exe -d <distro> -- <binary> <arguments>`.
+- Agents MUST NOT use `bash -lc`, another shell wrapper, or `cd` when the target binary can be invoked directly with an absolute path.
+
 # Extra
 
 - Agents MUST NOT use graphify in this repository.

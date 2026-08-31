@@ -15,13 +15,8 @@ from shutil import which
 from typing import Any, Literal, Optional
 
 from lib.errors import fail
-from lib.paths import (
-    RUNTIME_RELATIVE_PATH,
-    SKILL_LOCATION,
-    find_job_dir,
-    get_jobs_dir,
-    get_project_root,
-)
+from lib.paths import RUNTIME_RELATIVE_PATH, SKILL_LOCATION, get_project_root
+from lib.resolve_job import JobResolutionError, resolve_job
 
 
 PROJECT_ROOT = get_project_root()
@@ -43,7 +38,7 @@ class NewExecutionInputs:
     job_name: str
     execution_mode: str
     parent_id: Optional[str]
-
+    initial_context: dict[str, str]
 
 @dataclass(frozen=True)
 class ExistingExecutionInputs:
@@ -60,6 +55,32 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def parse_context_updates(
+    argv: list[str],
+    start_index: int,
+    argument_description: str,
+) -> dict[str, str]:
+    context_updates: dict[str, str] = {}
+    index = start_index
+
+    while index < len(argv):
+        if argv[index] != "--context" or index + 1 >= len(argv):
+            fail(f"Invalid or incomplete {argument_description}argument: {argv[index]}")
+
+        key_value = argv[index + 1]
+        if "=" not in key_value:
+            fail(
+                "Invalid format for --context, expected key=value "
+                f"but got: {key_value}"
+            )
+
+        key, value = key_value.split("=", 1)
+        context_updates[key] = value
+        index += 2
+
+    return context_updates
+
+
 def parse_command_line_inputs(argv: list[str]) -> CommandInputs:
     if len(argv) < 2:
         fail(usage())
@@ -73,6 +94,7 @@ def parse_command_line_inputs(argv: list[str]) -> CommandInputs:
         parent_id = None
         index = 3
 
+        initial_context: dict[str, str] = {}
         while index < len(argv):
             flag = argv[index]
             if flag == "--execution-mode" and index + 1 < len(argv):
@@ -81,44 +103,34 @@ def parse_command_line_inputs(argv: list[str]) -> CommandInputs:
             elif flag == "--parent-id" and index + 1 < len(argv):
                 parent_id = argv[index + 1]
                 index += 2
+            elif flag == "--context" and index + 1 < len(argv):
+                key_value = argv[index + 1]
+                if "=" not in key_value:
+                    fail(
+                        "Invalid format for --context, expected key=value "
+                        f"but got: {key_value}"
+                    )
+                key, value = key_value.split("=", 1)
+                initial_context[key] = value
+                index += 2
             else:
                 fail(f"Invalid or incomplete initialization argument: {flag}")
-
         return NewExecutionInputs(
             execution_type="new",
             job_name=job_name,
             execution_mode=execution_mode,
             parent_id=parent_id,
+            initial_context=initial_context,
         )
 
     if len(argv) < 3:
         fail(usage())
 
-    execution_id = argv[1]
-    transition_event = argv[2]
-    context_updates: dict[str, str] = {}
-    index = 3
-
-    while index < len(argv):
-        if argv[index] != "--context" or index + 1 >= len(argv):
-            fail(f"Invalid or incomplete argument: {argv[index]}")
-
-        key_value = argv[index + 1]
-        if "=" not in key_value:
-            fail(
-                "Invalid format for --context, expected key=value "
-                f"but got: {key_value}"
-            )
-
-        key, value = key_value.split("=", 1)
-        context_updates[key] = value
-        index += 2
-
     return ExistingExecutionInputs(
         execution_type="existing",
-        execution_id=execution_id,
-        transition_event=transition_event,
-        context_updates=context_updates,
+        execution_id=argv[1],
+        transition_event=argv[2],
+        context_updates=parse_context_updates(argv, 3, ""),
     )
 
 
@@ -143,9 +155,9 @@ def validate_inputs(inputs: CommandInputs) -> None:
 def usage() -> str:
     return (
         "Usage:\n"
-        "  execute_v2.py --job <job-name> "
-        "[--execution-mode <mode>] [--parent-id <id>]\n"
-        "  execute_v2.py <execution-id> <event> "
+        "  execute.py --job <job-name> [--execution-mode <mode>] "
+        "[--parent-id <id>] [--context key=value ...]\n"
+        "  execute.py <execution-id> <event> "
         "[--context key=value ...]"
     )
 
@@ -170,12 +182,14 @@ def load_graph(path: Any) -> Graph:
 
 
 def resolve_and_load_job_graph(job_name: str) -> Graph:
-    jobs_dir = get_jobs_dir(PROJECT_ROOT)
-    job_dir = find_job_dir(jobs_dir, job_name)
-    if job_dir:
-        graph_path = job_dir / "GRAPH.json"
-        if graph_path.is_file():
-            return load_graph(graph_path)
+    try:
+        resolved_job = resolve_job(job_name, PROJECT_ROOT)
+    except JobResolutionError as error:
+        fail(str(error))
+
+    graph_path = resolved_job.graph_json_path
+    if graph_path is not None:
+        return load_graph(graph_path)
 
     fail(
         f"GRAPH.json not found for job '{job_name}'. "
@@ -210,7 +224,16 @@ def create_initial_snapshot(
     job_name: str,
     execution_mode: str,
     parent_id: Optional[str] = None,
+    initial_context: Optional[dict[str, str]] = None,
 ) -> Snapshot:
+    context = graph.get("context", {})
+    if not isinstance(context, dict):
+        fail("GRAPH.json field 'context' must be an object.")
+
+    context = copy.deepcopy(context)
+    if initial_context:
+        context.update(initial_context)
+
     initial_state = graph["initial"]
     transition = {
         "event": None,
@@ -223,6 +246,7 @@ def create_initial_snapshot(
         "execution_id": create_execution_id(),
         "machine": job_name,
         "execution_mode": execution_mode,
+        "context": context,
         "state": initial_state,
         "metadata": transition,
         "history": [transition.copy()],
@@ -343,6 +367,7 @@ def update_snapshot(
         next_event = resolve_transition_event(current_state, exit_code)
         update_snapshot(next_snapshot, graph, next_event)
         return
+
 
     if state_type == "switch":
         next_event = evaluate_switch(current_state, next_snapshot)
@@ -490,6 +515,8 @@ def resolve_transition_event(
     return "ERROR"
 
 
+
+
 def evaluate_switch(
     current_state: State,
     snapshot: Snapshot,
@@ -577,6 +604,7 @@ def main() -> None:
             inputs.job_name,
             inputs.execution_mode,
             inputs.parent_id,
+            initial_context=inputs.initial_context,
         )
         transition_event = None
         context_updates = None
