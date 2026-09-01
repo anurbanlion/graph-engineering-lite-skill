@@ -31,76 +31,125 @@
     - [x] Conservar timestamps y reportar las fuentes y los destinos sincronizados.
   - [x] Actualizar `bin/sync-folder.sh` y `bin/sync-folder.bat` para delegar al sincronizador Python.
 
-- [ ] Redirigir la sincronización a `.graph-engineering/local/` como fuente de verdad global.
-  - [ ] Configurar `.env` con `{"path":".graph-engineering/local","destinationName":"graph-engineering"}` como fuente del skill.
-  - [ ] Configurar temporalmente en `.env` un destino controlado para la prueba.
-  - [ ] Ejecutar un run de prueba de la sincronización.
-  - [ ] Verificar que el run distribuya el contenido local bajo el nombre `graph-engineering` sin alterar la fuente de verdad.
-  - [ ] Restaurar en `.env` los destinos de sincronización registrados actualmente en `.env.example`.
-  - [ ] Crear un commit que registre la migración a Python y la redirección de la sincronización.
+- [x] Redirigir la sincronización a `.graph-engineering/local/` como fuente de verdad global.
+  - [x] Configurar `.env` con `{"path":".graph-engineering/local","destinationName":"graph-engineering"}` como fuente del skill.
+  - [x] Configurar temporalmente en `.env` un destino controlado para la prueba.
+  - [x] Ejecutar un run de prueba de la sincronización.
+  - [x] Verificar que el run distribuya el contenido local bajo el nombre `graph-engineering` sin alterar la fuente de verdad.
+  - [x] Restaurar en `.env` los destinos de sincronización registrados actualmente en `.env.example`.
+  - [x] Crear un commit que registre la migración a Python y la redirección de la sincronización.
 
-## Hito 3: Consolidar la ejecución local de scripts
+## Hito 3: Crear Execute Script para el agente
 
-- [ ] Crear un executor dedicado para scripts `execute_script`.
-  - [ ] Aceptar un identificador de script en lugar de una ruta física.
-  - [ ] Resolver el identificador mediante el resolvedor de scripts existente.
-  - [ ] Recibir el Project Root de forma explícita para resolver scripts locales determinísticamente.
-  - [ ] Ejecutar únicamente scripts Python durante la primera versión.
-  - [ ] Propagar la salida estándar, los errores y el resultado de ejecución al runtime del graph.
-  - [ ] Mantener transiciones genéricas `done` y `error` cuando no existan resultados adicionales que distinguir.
+- [x] Crear `.graph-engineering/local/scripts/execute_script.py` como una utilidad invocable directamente por el agente.
+  - [x] Aceptar un identificador de script, el Project Root y argumentos opcionales para el script resuelto.
+  - [x] Resolver el identificador mediante el resolvedor de scripts existente en `.graph-engineering/local/scripts/`.
+  - [x] Ejecutar únicamente scripts Python durante la primera versión.
 
-- [ ] Actualizar el skill de Graph Engineering para utilizar el executor (local).
-  - [ ] Explicar cómo proporcionar el Project Root al iniciar una ejecución.
-  - [ ] Explicar cómo ejecutar un script mediante su identificador.
-  - [ ] Añadir ejemplos de scripts globales y scripts locales.
-  - [ ] Aclarar que la primera versión admite solamente archivos `.py`.
+- [x] Actualizar `.graph-engineering/local/SKILL.md` para utilizar Execute Script.
+  - [x] Indicar que el agente debe invocarlo solamente ante la instrucción explícita `Execute the script <script-identifier>.` en un proceso normal o runtime state.
+  - [x] Explicar cómo proporcionar el Project Root, el identificador y los argumentos del script.
+  - [x] Añadir ejemplos de instrucciones con y sin argumentos y su interpretación por el skill.
+  - [x] Aclarar que la primera versión admite solamente archivos `.py`.
 
-- [ ] Migrar las referencias heredadas a scripts `.mjs`.
-  - [ ] Inventariar las referencias directas a archivos `.mjs` en jobs, graphs y documentación.
-  - [ ] Convertir o reemplazar los scripts necesarios por implementaciones Python compatibles con el executor.
-  - [ ] Sustituir rutas y extensiones explícitas por identificadores de script.
-  - [ ] Regenerar los diagramas de todos los `GRAPH.json` modificados.
-  - [ ] Retirar las implementaciones `.mjs` solamente después de comprobar su equivalencia funcional.
+- [ ] Migrar `lib/resolve-paths.mjs` a Python.
+  - [ ] Buscar las referencias a `lib/resolve-paths.mjs`.
+  - [ ] Reimplementar su comportamiento en Python.
+  - [ ] Reemplazar las referencias por la implementación Python o su identificador.
+  - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
+- [ ] Migrar `lib/activity-logs.mjs` a Python.
+  - [ ] Buscar las referencias a `lib/activity-logs.mjs`.
+  - [ ] Reimplementar su comportamiento en Python.
+  - [ ] Reemplazar las referencias por la implementación Python o su identificador.
+  - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
+- [ ] Migrar `lib/graphs.mjs` a Python.
+  - [ ] Buscar las referencias a `lib/graphs.mjs`.
+  - [ ] Reimplementar su comportamiento en Python.
+  - [ ] Reemplazar las referencias por la implementación Python o su identificador.
+  - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
+- [ ] Migrar `lib/jobs.mjs` a Python.
+  - [ ] Buscar las referencias a `lib/jobs.mjs`.
+  - [ ] Reimplementar su comportamiento en Python.
+  - [ ] Reemplazar las referencias por la implementación Python o su identificador.
+  - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
+- [ ] Migrar `resolve-output-path.mjs` a Python.
+  - [ ] Buscar las referencias a `resolve-output-path.mjs`.
+  - [ ] Reimplementar su comportamiento en Python.
+  - [ ] Reemplazar las referencias por la implementación Python o su identificador.
+  - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
+- [ ] Migrar `read-job-template.mjs` a Python.
+  - [ ] Buscar las referencias a `read-job-template.mjs`.
+  - [ ] Reimplementar su comportamiento en Python.
+  - [ ] Reemplazar las referencias por la implementación Python o su identificador.
+  - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
+- [ ] Migrar `read-jobs.mjs` a Python.
+  - [ ] Buscar las referencias a `read-jobs.mjs`.
+  - [ ] Reimplementar su comportamiento en Python.
+  - [ ] Reemplazar las referencias por la implementación Python o su identificador.
+  - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
+- [ ] Migrar `read-graphs.mjs` a Python.
+  - [ ] Buscar las referencias a `read-graphs.mjs`.
+  - [ ] Reimplementar su comportamiento en Python.
+  - [ ] Reemplazar las referencias por la implementación Python o su identificador.
+  - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
+- [ ] Migrar `list-jobs.mjs` a Python.
+  - [ ] Buscar las referencias a `list-jobs.mjs`.
+  - [ ] Reimplementar su comportamiento en Python.
+  - [ ] Reemplazar las referencias por la implementación Python o su identificador.
+  - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
+- [ ] Migrar `list-graphs.mjs` a Python.
+  - [ ] Buscar las referencias a `list-graphs.mjs`.
+  - [ ] Reimplementar su comportamiento en Python.
+  - [ ] Reemplazar las referencias por la implementación Python o su identificador.
+  - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
+- [ ] Migrar `validate-graph.mjs` a Python.
+  - [ ] Buscar las referencias a `validate-graph.mjs`.
+  - [ ] Reimplementar su comportamiento en Python.
+  - [ ] Reemplazar las referencias por la implementación Python o su identificador.
+  - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
+- [ ] Migrar `get-latest-output-by-job.mjs` a Python.
+  - [ ] Buscar las referencias a `get-latest-output-by-job.mjs`.
+  - [ ] Reimplementar su comportamiento en Python.
+  - [ ] Reemplazar las referencias por la implementación Python o su identificador.
+  - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
+- [ ] Migrar `dump-latest-output.mjs` a Python.
+  - [ ] Buscar las referencias a `dump-latest-output.mjs`.
+  - [ ] Reimplementar su comportamiento en Python.
+  - [ ] Reemplazar las referencias por la implementación Python o su identificador.
+  - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
+- [ ] Migrar `custom/compile-application-journeys.mjs` a Python.
+  - [ ] Buscar las referencias a `custom/compile-application-journeys.mjs`.
+  - [ ] Reimplementar su comportamiento en Python.
+  - [ ] Reemplazar las referencias por la implementación Python o su identificador.
+  - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
+- [ ] Migrar `custom/compile-application-use-cases.mjs` a Python.
+  - [ ] Buscar las referencias a `custom/compile-application-use-cases.mjs`.
+  - [ ] Reimplementar su comportamiento en Python.
+  - [ ] Reemplazar las referencias por la implementación Python o su identificador.
+  - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
+- [ ] Migrar `custom/compile-initiatives.mjs` a Python.
+  - [ ] Buscar las referencias a `custom/compile-initiatives.mjs`.
+  - [ ] Reimplementar su comportamiento en Python.
+  - [ ] Reemplazar las referencias por la implementación Python o su identificador.
+  - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
+- [ ] Migrar `custom/scaffold-journey-architecture.mjs` a Python.
+  - [ ] Buscar las referencias a `custom/scaffold-journey-architecture.mjs`.
+  - [ ] Reimplementar su comportamiento en Python.
+  - [ ] Reemplazar las referencias por la implementación Python o su identificador.
+  - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
+- [ ] Migrar `custom/scaffold-landing-page.mjs` a Python.
+  - [ ] Buscar las referencias a `custom/scaffold-landing-page.mjs`.
+  - [ ] Reimplementar su comportamiento en Python.
+  - [ ] Reemplazar las referencias por la implementación Python o su identificador.
+  - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
+- [ ] Migrar `custom/scan-open-communication-tasks.mjs` a Python.
+  - [ ] Buscar las referencias a `custom/scan-open-communication-tasks.mjs`.
+  - [ ] Reimplementar su comportamiento en Python.
+  - [ ] Reemplazar las referencias por la implementación Python o su identificador.
+  - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
+- [ ] Retirar cada implementación `.mjs` únicamente después de validar su reemplazo Python y todas sus referencias.
 
-## Hito 4: Completar `design-job-v2`
-
-- [ ] Finalizar el diseño nodo por nodo de `design-job-v2`.
-  - [ ] Revisar las instrucciones de cada estado y cada transición con el usuario.
-  - [ ] Mantener `interviewing` como una entrevista continua de propósito, inputs, outputs y proceso.
-  - [ ] Resolver el identificador y el path relativo agrupado antes de resolver la carpeta local.
-  - [ ] Resolver la carpeta del job mediante el identificador del script local correspondiente.
-  - [ ] Mantener el diseño y la revisión iterativa del graph cuando el proceso requiera un graph.
-  - [ ] Escribir `JOB.md` tanto para jobs basados en pasos como para jobs basados en `GRAPH.json`.
-  - [ ] Diseñar el pseudocódigo y el plan de reutilización antes de implementar scripts locales.
-  - [ ] Completar directamente cuando el job no requiera scripts.
- - [ ] Consolidar los artefactos producidos por `design-job-v2`.
-   - [ ] Tratar `JOB.md`, `GRAPH.json`, `GRAPH.md` y `scripts/` como Project Outputs.
-   - [ ] Evitar declarar un Managed Output para la materialización local del job.
-   - [ ] Ejecutar el generador de Mermaid después de cada modificación de `GRAPH.json`.
-   - [ ] Mantener el generador de Mermaid disponible como script local identificado.
-   - [ ] Validar que todos los artefactos permanezcan dentro de la carpeta local resuelta para el job.
-- [ ] Reemplazar el `design-job` actual con `design-job-v2`.
-  - [ ] Renombrar la carpeta y el identificador de `design-job-v2` a `design-job`.
-  - [ ] Actualizar las referencias que todavía utilicen el identificador temporal `design-job-v2`.
-  - [ ] Sustituir los artefactos del `design-job` anterior únicamente después de validar la nueva implementación.
-  - [ ] Eliminar el nombre temporal `design-job-v2` cuando la sustitución esté completa.
-
-## Hito 5: Crear el job de actualización
-
-- [ ] Diseñar `update-job` para modificar jobs locales existentes.
-  - [ ] Definir su propósito, sus inputs, sus Project Outputs y su Context Output.
-  - [ ] Resolver el job objetivo mediante su identificador y su Project Root.
-  - [ ] Inspeccionar `JOB.md`, `GRAPH.json`, `GRAPH.md` y los scripts existentes antes de proponer cambios.
-  - [ ] Preservar cambios locales ajenos al alcance de la actualización.
-  - [ ] Regenerar `GRAPH.md` cuando cambie `GRAPH.json`.
-  - [ ] Validar los artefactos actualizados antes de completar la ejecución.
-- [ ] Implementar `update-job` dentro de `.graph-engineering/local/jobs/`.
-  - [ ] Crear su `JOB.md`.
-  - [ ] Crear su `GRAPH.json` cuando el proceso acordado justifique una máquina de estados.
-  - [ ] Crear solamente los scripts locales requeridos por el diseño aprobado.
-  - [ ] Documentar un ejemplo realista de actualización de un job local.
-
-## Hito 6: Incorporar el nodo especial `spawn`
+## Hito 4: Incorporar el nodo especial `spawn`
 
 - [ ] Diseñar el contrato del nodo `spawn`.
   - [ ] Diferenciar `spawn` de los nodos de instrucciones, decisión y script.
@@ -118,6 +167,45 @@
   - [ ] Añadir un ejemplo mínimo de composición de jobs.
   - [ ] Añadir un ejemplo de submáquina con Project Root explícito.
   - [ ] Regenerar los diagramas de los graphs usados como ejemplo.
+- [ ] Definir cómo agregar instrucciones para el job `spawn`, dado que su ejecución será automática, y determinar en qué nodo el runtime debe exponerlas.
+
+## Hito 5: Completar `design-job-v2`
+
+- [ ] Finalizar el diseño nodo por nodo de `design-job-v2`.
+  - [ ] Revisar las instrucciones de cada estado y cada transición con el usuario.
+  - [ ] Mantener `interviewing` como una entrevista continua de propósito, inputs, outputs y proceso.
+  - [ ] Resolver el identificador y el path relativo agrupado antes de resolver la carpeta local.
+  - [ ] Resolver la carpeta del job mediante el identificador del script local correspondiente.
+  - [ ] Mantener el diseño y la revisión iterativa del graph cuando el proceso requiera un graph.
+  - [ ] Escribir `JOB.md` tanto para jobs basados en pasos como para jobs basados en `GRAPH.json`.
+  - [ ] Diseñar el pseudocódigo y el plan de reutilización antes de implementar scripts locales.
+  - [ ] Completar directamente cuando el job no requiera scripts.
+- [ ] Consolidar los artefactos producidos por `design-job-v2`.
+  - [ ] Tratar `JOB.md`, `GRAPH.json`, `GRAPH.md` y `scripts/` como Project Outputs.
+  - [ ] Evitar declarar un Managed Output para la materialización local del job.
+  - [ ] Ejecutar el generador de Mermaid después de cada modificación de `GRAPH.json`.
+  - [ ] Mantener el generador de Mermaid disponible como script local identificado.
+  - [ ] Validar que todos los artefactos permanezcan dentro de la carpeta local resuelta para el job.
+- [ ] Reemplazar el `design-job` actual con `design-job-v2`.
+  - [ ] Renombrar la carpeta y el identificador de `design-job-v2` a `design-job`.
+  - [ ] Actualizar las referencias que todavía utilicen el identificador temporal `design-job-v2`.
+  - [ ] Sustituir los artefactos del `design-job` anterior únicamente después de validar la nueva implementación.
+  - [ ] Eliminar el nombre temporal `design-job-v2` cuando la sustitución esté completa.
+
+## Hito 6: Crear el job de actualización
+
+- [ ] Diseñar `update-job` para modificar jobs locales existentes.
+  - [ ] Definir su propósito, sus inputs, sus Project Outputs y su Context Output.
+  - [ ] Resolver el job objetivo mediante su identificador y su Project Root.
+  - [ ] Inspeccionar `JOB.md`, `GRAPH.json`, `GRAPH.md` y los scripts existentes antes de proponer cambios.
+  - [ ] Preservar cambios locales ajenos al alcance de la actualización.
+  - [ ] Regenerar `GRAPH.md` cuando cambie `GRAPH.json`.
+  - [ ] Validar los artefactos actualizados antes de completar la ejecución.
+- [ ] Implementar `update-job` dentro de `.graph-engineering/local/jobs/`.
+  - [ ] Crear su `JOB.md`.
+  - [ ] Crear su `GRAPH.json` cuando el proceso acordado justifique una máquina de estados.
+  - [ ] Crear solamente los scripts locales requeridos por el diseño aprobado.
+  - [ ] Documentar un ejemplo realista de actualización de un job local.
 
 ## Hito 7: Formalizar el desarrollo y la calidad de scripts
 
