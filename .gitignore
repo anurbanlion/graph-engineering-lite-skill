@@ -4,7 +4,10 @@
 # project artifacts
 .env
 .codex/
-.graph-engineering/
+.graph-engineering/*
+!.graph-engineering/local/
+!.graph-engineering/local/**
 .patch-reports/
 
 __pycache__
+.pytest_cache

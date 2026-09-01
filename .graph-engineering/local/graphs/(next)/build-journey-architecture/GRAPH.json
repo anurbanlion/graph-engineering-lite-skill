@@ -1,0 +1,28 @@
+{
+    "name": "build-journey-architecture",
+    "version": "1.0",
+    "example-prompts": [
+        "Execute the build-journey-architecture graph.",
+        "Compile the storefront journeys and scaffold the architecture for every detected journey.",
+        "Run the graph that prepares the journey API architecture from the existing journey runs."
+    ],
+    "initial": "compile-storefront-journeys",
+    "jobs": {
+        "compile-storefront-journeys": {
+            "instructions": [
+                "Use global-designs as the run/<domain> name."
+            ],
+            "onDone": "scaffold-journey-architecture",
+            "onError": "abort"
+        },
+        "scaffold-journey-architecture": {
+            "instructions": [
+                "Use only the journeys array returned by the previous job.",
+                "Pass every journey identifier to the script with a repeated --journey option.",
+                "Do not read a managed output file to discover or normalize journey identifiers."
+            ],
+            "onDone": "complete",
+            "onError": "abort"
+        }
+    }
+}

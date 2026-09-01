@@ -1,0 +1,35 @@
+{
+  "name": "build-journey-use-case-dtos",
+  "version": "1.0",
+  "example-prompts": [
+    "Execute the build-journey-use-case-dtos graph for journey cart using the latest cart-page analysis.",
+    "Run the build-journey-use-case-dtos graph for journey account and domain account-page."
+  ],
+  "initial": "analyze-journey-use-cases",
+  "jobs": {
+    "analyze-journey-use-cases": {
+      "instructions": [
+        "Execute this job in Latest mode.",
+        "Use the journey domain identifier suffixed with -journey to locate the latest managed output (for example, account resolves to account-journey)."
+      ],
+      "onDone": "scaffold-journey-architecture",
+      "onError": "abort"
+    },
+    "scaffold-journey-architecture": {
+      "instructions": [
+        "Use the journey domain identifier provided to the graph."
+      ],
+      "onDone": "define-journey-use-case-dtos",
+      "onError": "abort"
+    },
+    "define-journey-use-case-dtos": {
+      "instructions": [
+        "Execute this mode twice, first once in latest mode and second once in default mode, this is in order to iterate and improve existing data flow graphs.",
+        "Use the journey domain identifier suffixed with -journey to locate the latest managed output or write the new managed output (for example, account resolves to account-journey).",
+        "If no use case was offered as an input you must halt execution and ask for the use case that must be present on the latest analyze-journey-use-cases Markdown currently available in context."
+      ],
+      "onDone": "complete",
+      "onError": "abort"
+    }
+  }
+}

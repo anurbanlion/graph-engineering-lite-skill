@@ -1,0 +1,22 @@
+{
+    "name": "build-application-use-cases",
+    "version": "1.0",
+    "initial": "analyze-journey-use-cases",
+    "jobs": {
+        "analyze-journey-use-cases": {
+            "instructions": [
+                "Use <route-journey>-journey as the run/<domain> name.",
+                "This job can be executed more than one time if the user asks for one than one <domain>."
+            ],
+            "onDone": "compile-storefront-use-cases",
+            "onError": "abort"
+        },
+        "compile-storefront-use-cases": {
+            "instructions": [
+                "Use global-designs as the run/<domain> name."
+            ],
+            "onDone": "complete",
+            "onError": "abort"
+        }
+    }
+}
