@@ -17,14 +17,27 @@
   - [ ] Revisar el diff completo de la migración antes de cerrar el hito.
   - [ ] Crear un commit que registre exclusivamente la migración completa a `.graph-engineering/local/`.
 
-## Hito 2: Redirigir la sincronización a la fuente local
+## Hito 2: Migrar y redirigir la sincronización
+
+- [x] Migrar el sincronizador de MJS a Python.
+  - [x] Analizar `bin/sync-folder.mjs`, `bin/sync-folder.sh`, `bin/sync-folder.bat` y el contrato actual de `.env`.
+  - [x] Crear una implementación Python que reproduzca uno a uno el comportamiento de `bin/sync-folder.mjs`.
+    - [x] Leer `SYNC_SOURCE_PATH` y `SYNC_DESTINATION_PATH` desde `.env` con el mismo contrato actual.
+    - [x] Interpretar fuentes simples, fuentes múltiples, destinos múltiples y `destinationName` de la misma forma.
+    - [x] Resolver las rutas relativas desde la raíz del repositorio y exigir destinos absolutos.
+    - [x] Aplicar las mismas validaciones de existencia, tipo y solapamiento de rutas.
+    - [x] Crear las raíces de destino requeridas antes de sincronizar.
+    - [x] Reemplazar completamente cada destino antes de copiar su fuente correspondiente.
+    - [x] Conservar timestamps y reportar las fuentes y los destinos sincronizados.
+  - [x] Actualizar `bin/sync-folder.sh` y `bin/sync-folder.bat` para delegar al sincronizador Python.
 
 - [ ] Redirigir la sincronización a `.graph-engineering/local/` como fuente de verdad global.
-  - [ ] Revisar `bin/sync-folder.mjs`, `bin/sync-folder.sh` y `bin/sync-folder.bat`.
-  - [ ] Modificar los scripts para que sincronicen desde `.graph-engineering/local/` hacia los demás repositorios.
+  - [ ] Configurar `.env` con `{"path":".graph-engineering/local","destinationName":"graph-engineering"}` como fuente del skill.
+  - [ ] Configurar temporalmente en `.env` un destino controlado para la prueba.
   - [ ] Ejecutar un run de prueba de la sincronización.
-  - [ ] Verificar que el run de prueba distribuya el contenido local esperado sin alterar la fuente de verdad.
-  - [ ] Crear un commit que registre exclusivamente la redirección de la sincronización.
+  - [ ] Verificar que el run distribuya el contenido local bajo el nombre `graph-engineering` sin alterar la fuente de verdad.
+  - [ ] Restaurar en `.env` los destinos de sincronización registrados actualmente en `.env.example`.
+  - [ ] Crear un commit que registre la migración a Python y la redirección de la sincronización.
 
 ## Hito 3: Consolidar la ejecución local de scripts
 

@@ -1,5 +1,5 @@
 @echo off
 setlocal
 
-node "%~dp0sync-folder.mjs" %*
+python "%~dp0sync_folder.py" %*
 exit /b %ERRORLEVEL%
