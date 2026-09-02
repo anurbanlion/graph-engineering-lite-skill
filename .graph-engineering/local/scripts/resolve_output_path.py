@@ -21,12 +21,14 @@ def get_gmt_minus_five_timestamp():
     return now.strftime("%Y%m%d-%H%M")
 
 
-def main():
-    if len(sys.argv) < 3:
+def main() -> int:
+    if len(sys.argv) != 3:
         fail("Usage: python3 resolve_output_path.py <domain> <job-name>")
 
     domain = sys.argv[1]
     job_name = sys.argv[2]
+    if not domain:
+        return 2
 
     validate_name(domain, "run-name")
     validate_name(job_name, "job-name")
@@ -42,9 +44,9 @@ def main():
     except Exception as e:
         fail(f"Failed to create directory {output_dir}: {e}")
 
-    # Output absolute path to match the node.js script's behavior
     print(str(output_file))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

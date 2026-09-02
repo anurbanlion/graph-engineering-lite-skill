@@ -1,6 +1,6 @@
-# Execute runtime flow
+# Execute V2 flow
 
-This document describes the execution flow implemented by `execute.py`.
+This document describes the execution flow implemented by the V2 executor.
 
 ```mermaid
 flowchart TB

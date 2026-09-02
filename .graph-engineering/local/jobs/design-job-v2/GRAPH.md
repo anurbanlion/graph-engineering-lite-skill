@@ -7,12 +7,12 @@ stateDiagram-v2
 
     interviewing --> resolvingName: RESOLVE_NAME<br/>The user explicitly approves the complete purpose, inputs, outputs, and process
 
-    resolvingName --> resolvingJobFolderPath: RESOLVE_JOB_FOLDER_PATH<br/>The user explicitly approves a valid final job identifier and local-jobs-relative path
+    resolvingName --> resolvingJobFolderPath: RESOLVE_JOB_FOLDER_PATH<br/>The user explicitly approves a valid final job identifier and local-jobs-relative path<br/>Context: job_identifier=confirmed-identifier, job_path=confirmed-parenthesized-group-path-and-identifier
 
     resolvingJobFolderPath --> resolvingProcess: DONE<br/>The script resolves a safe tentative local job path without modifying the project
 
-    resolvingProcess --> writingJobMarkdown: USE_JOB_STEPS<br/>The user approves representing the process as ordered steps in JOB.md
-    resolvingProcess --> editingGraph: USE_GRAPH<br/>The user approves representing the process as a GRAPH.json state machine
+    resolvingProcess --> writingJobMarkdown: USE_JOB_STEPS<br/>The user approves representing the process as ordered steps in JOB.md<br/>Context: job_format=job
+    resolvingProcess --> editingGraph: USE_GRAPH<br/>The user approves representing the process as a GRAPH.json state machine<br/>Context: job_format=graph
 
     writingJobMarkdown --> complete: NO_SCRIPTS<br/>JOB.md is complete and the approved process requires no local scripts
     writingJobMarkdown --> designingScriptPseudocode: SCRIPTS_REQUIRED<br/>JOB.md is complete and the approved process requires one or more local scripts
@@ -20,6 +20,7 @@ stateDiagram-v2
     editingGraph --> generatingGraphDiagram: GENERATE_GRAPH<br/>The user approves the graph design for generation
 
     generatingGraphDiagram --> reviewingGraph: DIAGRAM_UPDATED<br/>GRAPH.md was created or updated from the current GRAPH.json
+    generatingGraphDiagram --> editingGraph: ERROR<br/>The graph or Mermaid generation is invalid and requires correction
 
     reviewingGraph --> editingGraph: REVISE_GRAPH<br/>The user requests additional graph changes
     reviewingGraph --> writingJobMarkdown: CONFIRM_GRAPH<br/>The user explicitly approves the graph and generated Mermaid diagram
@@ -37,6 +38,7 @@ stateDiagram-v2
 
     classDef scriptState fill:#DCEBFF,stroke:#2563EB,stroke-width:2px,color:#111827
     classDef switchState fill:#FEE2E2,stroke:#DC2626,stroke-width:2px,color:#111827
+    classDef spawnState fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#111827
 
     class resolvingJobFolderPath,generatingGraphDiagram scriptState
 ```

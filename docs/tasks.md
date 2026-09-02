@@ -52,6 +52,102 @@
   - [x] Añadir ejemplos de instrucciones con y sin argumentos y su interpretación por el skill.
   - [x] Aclarar que la primera versión admite solamente archivos `.py`.
 
+
+## Hito 4: Incorporar el nodo especial `spawn`
+
+- [x] Diseñar el contrato del nodo `spawn`.
+  - [x] Diferenciar `spawn` de los nodos de instrucciones, decisión y script.
+  - [x] Redefinir el grafo de execute
+  - [x] Redefinir el modelo de datos de execute
+  - [x] Diseñar el comportamiento de `spawn` dentro del grafo mermaid
+  - [x] Planificar las tareas de implementación
+  - [x] Implementar el nodo `spawn` y otras mejoras en el runtime.
+
+- [ ] Actualizar `execute-job` para usar `context.job_name` desde el inicio de la ejecución.
+  - [ ] Leer `context.job_name` cuando se proporcione al iniciar el runtime.
+  - [ ] Omitir el discovery del job cuando el contexto ya contenga un identificador de job válido.
+  - [ ] Conservar el discovery actual cuando `context.job_name` no esté disponible.
+  - [ ] Actualizar el grafo
+
+- [ ] Actualizar `execute-job` para usar `spawn` node para invocar a los otros jobs si tienen un GRAPH asociado.
+- [ ] Formalizar las actualizaciones de contexto declaradas por las transiciones.
+  - [ ] Incorporar `context_updates` como metadatos estructurados del contrato de transición.
+  - [ ] Validar las claves declaradas contra `context_schema`.
+  - [ ] Mostrar las actualizaciones de contexto en los diagramas Mermaid sin depender de instrucciones en lenguaje natural.
+  - [ ] Actualizar el runtime y el skill para interpretar las actualizaciones estructuradas.
+- [ ] Eliminar `execute-flow` ya que `execute-job` se volverá el orquestador oficial al poder invocar otros jobs.
+
+- [ ] Migrar todos los cambios
+- [ ] Crear un job con design-job-v2
+
+## Hito 5: Completar `design-job-v2`
+
+- [ ] Finalizar el diseño nodo por nodo de `design-job-v2`.
+  - [ ] Revisar las instrucciones de cada estado y cada transición con el usuario.
+  - [ ] Mantener `interviewing` como una entrevista continua de propósito, inputs, outputs y proceso.
+  - [ ] Resolver el identificador y el path relativo agrupado antes de resolver la carpeta local.
+  - [ ] Resolver la carpeta del job mediante el identificador del script local correspondiente.
+  - [ ] Mantener el diseño y la revisión iterativa del graph cuando el proceso requiera un graph.
+  - [ ] Escribir `JOB.md` tanto para jobs basados en pasos como para jobs basados en `GRAPH.json`.
+  - [ ] Diseñar el pseudocódigo y el plan de reutilización antes de implementar scripts locales.
+  - [ ] Completar directamente cuando el job no requiera scripts.
+- [ ] Consolidar los artefactos producidos por `design-job-v2`.
+  - [ ] Tratar `JOB.md`, `GRAPH.json`, `GRAPH.md` y `scripts/` como Project Outputs.
+  - [ ] Evitar declarar un Managed Output para la materialización local del job.
+  - [ ] Ejecutar el generador de Mermaid después de cada modificación de `GRAPH.json`.
+  - [ ] Mantener el generador de Mermaid disponible como script local identificado.
+  - [ ] Validar que todos los artefactos permanezcan dentro de la carpeta local resuelta para el job.
+- [ ] Reemplazar el `design-job` actual con `design-job-v2`.
+  - [ ] Renombrar la carpeta y el identificador de `design-job-v2` a `design-job`.
+  - [ ] Actualizar las referencias que todavía utilicen el identificador temporal `design-job-v2`.
+  - [ ] Sustituir los artefactos del `design-job` anterior únicamente después de validar la nueva implementación.
+  - [ ] Eliminar el nombre temporal `design-job-v2` cuando la sustitución esté completa.
+
+## Hito 6: Crear el job de actualización
+
+- [ ] Diseñar `update-job` para modificar jobs locales existentes.
+  - [ ] Definir su propósito, sus inputs, sus Project Outputs y su Context Output.
+  - [ ] Resolver el job objetivo mediante su identificador y su Project Root.
+  - [ ] Inspeccionar `JOB.md`, `GRAPH.json`, `GRAPH.md` y los scripts existentes antes de proponer cambios.
+  - [ ] Preservar cambios locales ajenos al alcance de la actualización.
+  - [ ] Regenerar `GRAPH.md` cuando cambie `GRAPH.json`.
+  - [ ] Validar los artefactos actualizados antes de completar la ejecución.
+- [ ] Implementar `update-job` dentro de `.graph-engineering/local/jobs/`.
+  - [ ] Crear su `JOB.md`.
+  - [ ] Crear su `GRAPH.json` cuando el proceso acordado justifique una máquina de estados.
+  - [ ] Crear solamente los scripts locales requeridos por el diseño aprobado.
+  - [ ] Documentar un ejemplo realista de actualización de un job local.
+
+## Hito 7: Formalizar el desarrollo y la calidad de scripts
+
+- [ ] Crear un skill para elaborar especificaciones.
+  - [ ] Guiar la definición del comportamiento esperado antes de implementar código.
+  - [ ] Separar requisitos funcionales, restricciones, casos límite y criterios de aceptación.
+  - [ ] Producir especificaciones que puedan convertirse directamente en casos de prueba.
+  - [ ] Integrar el skill con el diseño de scripts de Graph Engineering.
+- [ ] Crear un skill para elaborar diagramas de flujo.
+  - [ ] Guiar la traducción de procesos y pseudocódigo a diagramas verificables.
+  - [ ] Representar decisiones, bucles, errores, entradas y salidas de forma explícita.
+  - [ ] Integrar el skill con el generador de Mermaid disponible en el proyecto.
+  - [ ] Utilizar los diagramas como revisión previa a la implementación.
+- [ ] Establecer un flujo verificable para desarrollar scripts.
+  - [ ] Especificar el comportamiento antes de escribir el script.
+  - [ ] Diagramar el flujo cuando existan decisiones, bucles o varias rutas de error.
+  - [ ] Diseñar el pseudocódigo y revisar oportunidades de reutilización.
+  - [ ] Implementar el script a partir de la especificación aprobada.
+  - [ ] Crear pruebas derivadas de los criterios de aceptación.
+  - [ ] Ejecutar las pruebas y registrar las validaciones antes de considerar completo el script.
+- [ ] Aplicar `INSTRUCTION_AUTHORING.md` a las instrucciones del skill que requieren ejecutar scripts.
+  - [ ] Revisar las instrucciones y reglas de `execute_script` para que cumplan la convención de authoring.
+  - [ ] Añadir o ajustar ejemplos de instrucciones de scripts y de la interpretación correspondiente por el agente.
+
+- [ ] Aplicar el flujo de calidad a los scripts críticos existentes.
+  - [ ] Priorizar el executor, los resolvedores, el sincronizador y el generador de diagramas.
+  - [ ] Añadir especificaciones y pruebas donde actualmente solo exista implementación.
+  - [ ] Corregir divergencias entre comportamiento, documentación y graphs consumidores.
+
+## Hito 8: Migrar las librerías CommonJS/MJS a Python
+
 - [ ] Migrar `lib/resolve-paths.mjs` a Python.
   - [ ] Buscar las referencias a `lib/resolve-paths.mjs`.
   - [ ] Reimplementar su comportamiento en Python.
@@ -149,87 +245,7 @@
   - [ ] Validar la implementación y regenerar `GRAPH.md` cuando cambie un `GRAPH.json` consumidor.
 - [ ] Retirar cada implementación `.mjs` únicamente después de validar su reemplazo Python y todas sus referencias.
 
-## Hito 4: Incorporar el nodo especial `spawn`
-
-- [ ] Diseñar el contrato del nodo `spawn`.
-  - [ ] Diferenciar `spawn` de los nodos de instrucciones, decisión y script.
-  - [ ] Definir cómo identifica el job o graph hijo que debe ejecutar.
-  - [ ] Definir cómo recibe el Project Root y el contexto inicial de la ejecución hija.
-  - [ ] Definir cómo relaciona la ejecución hija con la ejecución padre.
-  - [ ] Definir cómo transforma la finalización o el error del hijo en transiciones del padre.
-- [ ] Implementar el nodo `spawn` en el runtime.
-  - [ ] Ampliar la validación del schema de graphs.
-  - [ ] Crear el runtime hijo desde el executor principal.
-  - [ ] Persistir la relación entre snapshots padre e hijo.
-  - [ ] Reanudar la máquina padre con el Context Output de la máquina hija.
-  - [ ] Propagar errores sin dejar ejecuciones parcialmente activas.
-- [ ] Documentar el uso del nodo `spawn`.
-  - [ ] Añadir un ejemplo mínimo de composición de jobs.
-  - [ ] Añadir un ejemplo de submáquina con Project Root explícito.
-  - [ ] Regenerar los diagramas de los graphs usados como ejemplo.
-- [ ] Definir cómo agregar instrucciones para el job `spawn`, dado que su ejecución será automática, y determinar en qué nodo el runtime debe exponerlas.
-
-## Hito 5: Completar `design-job-v2`
-
-- [ ] Finalizar el diseño nodo por nodo de `design-job-v2`.
-  - [ ] Revisar las instrucciones de cada estado y cada transición con el usuario.
-  - [ ] Mantener `interviewing` como una entrevista continua de propósito, inputs, outputs y proceso.
-  - [ ] Resolver el identificador y el path relativo agrupado antes de resolver la carpeta local.
-  - [ ] Resolver la carpeta del job mediante el identificador del script local correspondiente.
-  - [ ] Mantener el diseño y la revisión iterativa del graph cuando el proceso requiera un graph.
-  - [ ] Escribir `JOB.md` tanto para jobs basados en pasos como para jobs basados en `GRAPH.json`.
-  - [ ] Diseñar el pseudocódigo y el plan de reutilización antes de implementar scripts locales.
-  - [ ] Completar directamente cuando el job no requiera scripts.
-- [ ] Consolidar los artefactos producidos por `design-job-v2`.
-  - [ ] Tratar `JOB.md`, `GRAPH.json`, `GRAPH.md` y `scripts/` como Project Outputs.
-  - [ ] Evitar declarar un Managed Output para la materialización local del job.
-  - [ ] Ejecutar el generador de Mermaid después de cada modificación de `GRAPH.json`.
-  - [ ] Mantener el generador de Mermaid disponible como script local identificado.
-  - [ ] Validar que todos los artefactos permanezcan dentro de la carpeta local resuelta para el job.
-- [ ] Reemplazar el `design-job` actual con `design-job-v2`.
-  - [ ] Renombrar la carpeta y el identificador de `design-job-v2` a `design-job`.
-  - [ ] Actualizar las referencias que todavía utilicen el identificador temporal `design-job-v2`.
-  - [ ] Sustituir los artefactos del `design-job` anterior únicamente después de validar la nueva implementación.
-  - [ ] Eliminar el nombre temporal `design-job-v2` cuando la sustitución esté completa.
-
-## Hito 6: Crear el job de actualización
-
-- [ ] Diseñar `update-job` para modificar jobs locales existentes.
-  - [ ] Definir su propósito, sus inputs, sus Project Outputs y su Context Output.
-  - [ ] Resolver el job objetivo mediante su identificador y su Project Root.
-  - [ ] Inspeccionar `JOB.md`, `GRAPH.json`, `GRAPH.md` y los scripts existentes antes de proponer cambios.
-  - [ ] Preservar cambios locales ajenos al alcance de la actualización.
-  - [ ] Regenerar `GRAPH.md` cuando cambie `GRAPH.json`.
-  - [ ] Validar los artefactos actualizados antes de completar la ejecución.
-- [ ] Implementar `update-job` dentro de `.graph-engineering/local/jobs/`.
-  - [ ] Crear su `JOB.md`.
-  - [ ] Crear su `GRAPH.json` cuando el proceso acordado justifique una máquina de estados.
-  - [ ] Crear solamente los scripts locales requeridos por el diseño aprobado.
-  - [ ] Documentar un ejemplo realista de actualización de un job local.
-
-## Hito 7: Formalizar el desarrollo y la calidad de scripts
-
-- [ ] Crear un skill para elaborar especificaciones.
-  - [ ] Guiar la definición del comportamiento esperado antes de implementar código.
-  - [ ] Separar requisitos funcionales, restricciones, casos límite y criterios de aceptación.
-  - [ ] Producir especificaciones que puedan convertirse directamente en casos de prueba.
-  - [ ] Integrar el skill con el diseño de scripts de Graph Engineering.
-- [ ] Crear un skill para elaborar diagramas de flujo.
-  - [ ] Guiar la traducción de procesos y pseudocódigo a diagramas verificables.
-  - [ ] Representar decisiones, bucles, errores, entradas y salidas de forma explícita.
-  - [ ] Integrar el skill con el generador de Mermaid disponible en el proyecto.
-  - [ ] Utilizar los diagramas como revisión previa a la implementación.
-- [ ] Establecer un flujo verificable para desarrollar scripts.
-  - [ ] Especificar el comportamiento antes de escribir el script.
-  - [ ] Diagramar el flujo cuando existan decisiones, bucles o varias rutas de error.
-  - [ ] Diseñar el pseudocódigo y revisar oportunidades de reutilización.
-  - [ ] Implementar el script a partir de la especificación aprobada.
-  - [ ] Crear pruebas derivadas de los criterios de aceptación.
-  - [ ] Ejecutar las pruebas y registrar las validaciones antes de considerar completo el script.
-- [ ] Aplicar el flujo de calidad a los scripts críticos existentes.
-  - [ ] Priorizar el executor, los resolvedores, el sincronizador y el generador de diagramas.
-  - [ ] Añadir especificaciones y pruebas donde actualmente solo exista implementación.
-  - [ ] Corregir divergencias entre comportamiento, documentación y graphs consumidores.
+- [ ] Agregar en wsl patch la politica de un reintento
 
 ## Contexto y dirección del proyecto
 

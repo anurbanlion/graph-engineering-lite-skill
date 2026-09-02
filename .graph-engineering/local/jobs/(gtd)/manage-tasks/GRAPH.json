@@ -12,6 +12,7 @@
   "initial": "refreshingGlobalTaskList",
   "states": {
     "refreshingGlobalTaskList": {
+      "type": "script",
       "scripts": [
         "scripts/custom/compile-initiatives-tasks.py working/scripts/custom/global.md",
         "scripts/custom/initialize-tasks.py working/scripts/custom/global.md",
@@ -29,6 +30,7 @@
       }
     },
     "readingGlobalTaskList": {
+      "type": "script",
       "scripts": [
         "scripts/read_file.py working/scripts/custom/global.md"
       ],
@@ -44,6 +46,7 @@
       }
     },
     "handlingUserRequest": {
+      "type": "instruction",
       "instructions": [
         "You MUST offer these initial actions: update milestones, update tasks, or execute a task.",
         "You MUST stop and wait for the user's instruction.",
@@ -67,6 +70,7 @@
       }
     },
     "suggestingCommit": {
+      "type": "instruction",
       "instructions": [
         "USER: Hey, please suggest commits",
         "The user explicity ask for you to suggest commits."
@@ -81,6 +85,14 @@
           "condition": "The commit suggestion could not be prepared"
         }
       }
+    },
+    "complete": {
+      "type": "final",
+      "result": "DONE"
+    },
+    "abort": {
+      "type": "final",
+      "result": "ERROR"
     }
   }
 }

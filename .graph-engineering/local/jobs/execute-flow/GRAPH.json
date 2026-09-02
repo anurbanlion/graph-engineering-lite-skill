@@ -4,6 +4,7 @@
     "initial": "discoveringFlows",
     "states": {
         "discoveringFlows": {
+            "type": "script",
             "scripts": [
                 "scripts/list_flows.py"
             ],
@@ -19,6 +20,7 @@
             }
         },
         "resolvingRequest": {
+            "type": "instruction",
             "instructions": [
                 "You MUST match the user's request against the discovered flows and determine whether a single flow can be selected."
             ],
@@ -49,6 +51,7 @@
             }
         },
         "presentingFlows": {
+            "type": "instruction",
             "instructions": [
                 "You MUST include every flow exactly once.",
                 "You MUST preserve each flow's group name and logical identifier.",
@@ -69,6 +72,7 @@
             }
         },
         "readingFlow": {
+            "type": "script",
             "scripts": [
                 "scripts/read_flow.py {flow_name}"
             ],
@@ -84,6 +88,7 @@
             }
         },
         "spawningGraph": {
+            "type": "instruction",
             "instructions": [
                 "You MUST read the rules for executing graphs/flows from the 'rules.md' file located in this job's directory.",
                 "You MUST orchestrate the execution of the requested flow ({flow_name}) by strictly following all discovery, validation, and execution rules defined in 'rules.md'.",
@@ -102,7 +107,13 @@
                 }
             }
         },
-        "complete": {},
-        "abort": {}
+        "complete": {
+            "type": "final",
+            "result": "DONE"
+        },
+        "abort": {
+            "type": "final",
+            "result": "ERROR"
+        }
     }
 }

@@ -2,14 +2,17 @@
     "id": "execute-job",
     "version": "1.0",
     "context_schema": {
-        "job_name": "string"
+        "job_name": "string",
+        "domain": "string"
     },
     "context": {
-        "job_name": ""
+        "job_name": "",
+        "domain": ""
     },
     "initial": "resolvingJob",
     "states": {
         "resolvingJob": {
+            "type": "script",
             "scripts": [
                 "check_job {context.job_name}"
             ],
@@ -25,6 +28,7 @@
             }
         },
         "discoveringJobs": {
+            "type": "script",
             "scripts": [
                 "list_jobs"
             ],
@@ -40,6 +44,7 @@
             }
         },
         "resolvingRequest": {
+            "type": "instruction",
             "instructions": [
                 "You MUST match the user's request against the discovered jobs and determine whether a single job can be selected."
             ],
@@ -70,6 +75,7 @@
             }
         },
         "presentingJobs": {
+            "type": "instruction",
             "instructions": [
                 "You MUST include every job exactly once; no job MAY be omitted, summarized, truncated, or replaced with phrases.",
                 "You MUST preserve each job's group name and logical identifier.",
@@ -92,6 +98,7 @@
             }
         },
         "readingJobInputs": {
+            "type": "script",
             "scripts": [
                 "read_job_inputs {context.job_name}"
             ],
@@ -107,6 +114,7 @@
             }
         },
         "validatingExecutionInputs": {
+            "type": "instruction",
             "instructions": [
                 "You MUST inspect the extracted '## Inputs' section and verify whether all mandatory inputs defined there are available in the request or conversation context.",
                 "You MUST NOT execute the job process, create repository files, or run job scripts during this state."
@@ -127,6 +135,7 @@
             }
         },
         "requestingExecutionInput": {
+            "type": "instruction",
             "instructions": [
                 "You MUST stop execution and ask the user for the missing required execution input(s) explicitly.",
                 "You MUST explain what input is needed and why it is required for the job."
@@ -143,6 +152,7 @@
             }
         },
         "resolvingExecutionMode": {
+            "type": "switch",
             "switch": "execution_mode",
             "on": {
                 "default": {
@@ -160,21 +170,22 @@
             }
         },
         "readingJobProcess": {
+            "type": "script",
             "scripts": [
                 "read_job_process {context.job_name}"
             ],
             "exit_codes": {
                 "0": "PROCESS_DETECTED",
                 "1": "ERROR",
-                "2": "SUB_MACHINE_DETECTED"
+                "2": "GRAPH_DETECTED"
             },
             "on": {
                 "PROCESS_DETECTED": {
                     "target": "validatingJobProcess",
                     "condition": "Job process was successfully read"
                 },
-                "SUB_MACHINE_DETECTED": {
-                    "target": "spawningSubMachine",
+                "GRAPH_DETECTED": {
+                    "target": "spawningGraph",
                     "condition": "A GRAPH.json was detected for this job"
                 },
                 "ERROR": {
@@ -184,6 +195,7 @@
             }
         },
         "validatingJobProcess": {
+            "type": "instruction",
             "instructions": [
                 "You MUST inspect the extracted '## Process' section and verify that it contains NO references to creating, generating, writing, persisting, or resolving Managed Outputs.",
                 "You MUST report the exact lines where you find any prohibited references to Managed Outputs."
@@ -203,24 +215,22 @@
                 }
             }
         },
-        "spawningSubMachine": {
-            "instructions": [
-                "You MUST invoke this job as a sub-machine.",
-                "Start it by running: python3 .codex/skills/graph-engineering/scripts/execute.py --job {context.job_name} --parent-id {execution_id}",
-                "You MUST focus entirely on the child execution and NOT advance this parent execution until the child's terminal state explicitly instructs you to resume."
-            ],
+        "spawningGraph": {
+            "type": "spawn",
+            "spawn": "{context.job_name}",
             "on": {
-                "SUB_MACHINE_DONE": {
+                "DONE": {
                     "target": "readingJobOutput",
-                    "condition": "The invoked sub-machine completed successfully"
+                    "condition": "The child runtime completed successfully"
                 },
-                "SUB_MACHINE_FAILED": {
+                "ERROR": {
                     "target": "abort",
-                    "condition": "The invoked sub-machine aborted or failed"
+                    "condition": "The child runtime aborted or failed"
                 }
             }
         },
         "spawningJob": {
+            "type": "instruction",
             "instructions": [
                 "You MUST execute the job process exclusively according to the extracted '## Process' instructions.",
                 "You MAY engage in multi-turn conversation, interviews, or interactive steps with the user as required by the job's process.",
@@ -239,6 +249,7 @@
             }
         },
         "readingJobOutput": {
+            "type": "script",
             "scripts": [
                 "read_job_output {context.job_name}"
             ],
@@ -254,6 +265,7 @@
             }
         },
         "evaluatingJobOutput": {
+            "type": "instruction",
             "instructions": [
                 "You MUST inspect the extracted '## Output' section and determine whether the job defines a Managed Output, no Output, or a Managed Output that is handled by the script.",
                 "You MUST also check the 'execution_mode' in the runtime payload to determine the correct transition if the managed output is handled by the script."
@@ -261,7 +273,10 @@
             "on": {
                 "RESOLVE_MANAGED_OUTPUT_PATH": {
                     "target": "resolvingManagedOutputPath",
-                    "condition": "Job defines a Managed Output that must be generated by the agent"
+                    "condition": "Job defines a Managed Output that must be generated by the agent",
+                    "instructions": [
+                        "Update runtime context with --context domain=<resolved-domain>"
+                    ]
                 },
                 "SKIP_MANAGED_OUTPUT_DEFAULT": {
                     "target": "buildingContextOutput",
@@ -269,7 +284,10 @@
                 },
                 "SKIP_MANAGED_OUTPUT_ECHO": {
                     "target": "resolvingLatestOutput",
-                    "condition": "Job defines a Managed Output handled by the script AND execution_mode is 'echo'"
+                    "condition": "Job defines a Managed Output handled by the script AND execution_mode is 'echo'",
+                    "instructions": [
+                        "Update runtime context with --context domain=<resolved-domain>"
+                    ]
                 },
                 "BUILD_CONTEXT_OUTPUT": {
                     "target": "buildingContextOutput",
@@ -282,11 +300,15 @@
             }
         },
         "resolvingManagedOutputPath": {
-            "instructions": [
-                "If the `<domain>` is not available in the current context, you MUST transition using REQUEST_MANAGED_OUTPUT_DOMAIN inmediatly.",
-                "You MUST resolve the path for the Managed Output using the resolve-output-path script.",
-                "Use: python3 .codex/skills/graph-engineering/scripts/resolve_output_path.py <domain> <job-name>"
+            "type": "script",
+            "scripts": [
+                "resolve_output_path \"{context.domain}\" {context.job_name}"
             ],
+            "exit_codes": {
+                "0": "WRITE_MANAGED_OUTPUT",
+                "1": "ERROR",
+                "2": "REQUEST_MANAGED_OUTPUT_DOMAIN"
+            },
             "on": {
                 "WRITE_MANAGED_OUTPUT": {
                     "target": "writingManagedOutput",
@@ -303,6 +325,7 @@
             }
         },
         "requestingManagedOutputDomain": {
+            "type": "instruction",
             "instructions": [
                 "You MUST stop execution and explicitly ask the user to provide the '<domain>' required for the Managed Output.",
                 "You MUST explain why the domain is needed."
@@ -310,7 +333,10 @@
             "on": {
                 "RESOLVE_MANAGED_OUTPUT_PATH": {
                     "target": "resolvingManagedOutputPath",
-                    "condition": "The user provides the required domain"
+                    "condition": "The user provides the required domain",
+                    "instructions": [
+                        "Update runtime context with --context domain=<provided-domain>"
+                    ]
                 },
                 "ERROR": {
                     "target": "abort",
@@ -319,6 +345,7 @@
             }
         },
         "writingManagedOutput": {
+            "type": "instruction",
             "instructions": [
                 "You MUST write the Managed Output exactly to the path resolved in the previous state.",
                 "You MUST NOT create alternative paths manually.",
@@ -327,7 +354,7 @@
             "on": {
                 "BUILD_CONTEXT_OUTPUT": {
                     "target": "buildingContextOutput",
-                    "condition": "Managed Output is successfully written and execution_mode is 'default'"
+                    "condition": "Managed Output is successfully written and execution_mode is 'default' or 'iterative'"
                 },
                 "PRINT_OUTPUT": {
                     "target": "printingOutput",
@@ -340,26 +367,32 @@
             }
         },
         "resolvingLatestOutput": {
-            "instructions": [
-                "You MUST locate the latest existing Managed Output for the current job and domain.",
-                "Use: python3 .codex/skills/graph-engineering/scripts/print_latest_output.py <domain> <job-name>"
+            "type": "script",
+            "scripts": [
+                "resolve_latest_output_path \"{context.domain}\" {context.job_name}"
             ],
+            "exit_codes": {
+                "0": "PRINT_OUTPUT",
+                "1": "ERROR",
+                "2": "REQUEST_LATEST_OUTPUT_DOMAIN"
+            },
             "on": {
                 "PRINT_OUTPUT": {
                     "target": "printingOutput",
-                    "condition": "Latest Managed Output is found"
+                    "condition": "Latest Managed Output path is resolved successfully"
                 },
-                "REQUEST_MANAGED_OUTPUT_DOMAIN": {
+                "REQUEST_LATEST_OUTPUT_DOMAIN": {
                     "target": "requestingLatestOutputDomain",
                     "condition": "Managed Output domain is not available"
                 },
                 "ERROR": {
                     "target": "abort",
-                    "condition": "An error occurred while resolving the latest output"
+                    "condition": "An error occurred while resolving the latest output path"
                 }
             }
         },
         "requestingLatestOutputDomain": {
+            "type": "instruction",
             "instructions": [
                 "You MUST stop execution and explicitly ask the user to provide the '<domain>' required to locate the latest Managed Output.",
                 "You MUST explain why the domain is needed."
@@ -367,7 +400,10 @@
             "on": {
                 "RESOLVE_LATEST_OUTPUT": {
                     "target": "resolvingLatestOutput",
-                    "condition": "The user provides the required domain"
+                    "condition": "The user provides the required domain",
+                    "instructions": [
+                        "Update runtime context with --context domain=<provided-domain>"
+                    ]
                 },
                 "ERROR": {
                     "target": "abort",
@@ -376,10 +412,27 @@
             }
         },
         "printingOutput": {
+            "type": "instruction",
+            "instructions": [
+                "Execute the script `print_output` with the output path emitted by whichever of `resolvingManagedOutputPath` or `resolvingLatestOutput` most recently completed."
+            ],
+            "on": {
+                "ROUTE_OUTPUT": {
+                    "target": "routingAfterPrintingOutput",
+                    "condition": "The resolved Managed Output was printed successfully"
+                },
+                "ERROR": {
+                    "target": "abort",
+                    "condition": "The resolved Managed Output could not be printed"
+                }
+            }
+        },
+        "routingAfterPrintingOutput": {
+            "type": "switch",
             "switch": "execution_mode",
             "on": {
                 "iterative": {
-                    "target": "resolvingExecutionMode"
+                    "target": "readingJobProcess"
                 },
                 "default": {
                     "target": "buildingContextOutput"
@@ -393,6 +446,7 @@
             }
         },
         "buildingContextOutput": {
+            "type": "instruction",
             "instructions": [
                 "You MUST build the Context Output using the current job's logical identifier as the root bullet.",
                 "You MUST include links to all Project Outputs created or modified during the current execution.",
@@ -428,10 +482,12 @@
             }
         },
         "complete": {
-            "type": "final"
+            "type": "final",
+            "result": "DONE"
         },
         "abort": {
-            "type": "final"
+            "type": "final",
+            "result": "ERROR"
         }
     },
     "tests": [

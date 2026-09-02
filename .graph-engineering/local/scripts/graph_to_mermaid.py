@@ -6,11 +6,13 @@ import re
 from pathlib import Path
 
 
-HIDDEN_EVENTS = {"ERROR", "AMBIGUOUS"}
-HIDE_ABORT_TRANSITIONS = True
 OUTPUT_FILENAME = "GRAPH.md"
 SCRIPT_STATE_STYLE = "fill:#DCEBFF,stroke:#2563EB,stroke-width:2px,color:#111827"
 SWITCH_STATE_STYLE = "fill:#FEE2E2,stroke:#DC2626,stroke-width:2px,color:#111827"
+SPAWN_STATE_STYLE = "fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#111827"
+CONTEXT_UPDATE_PATTERN = re.compile(
+    r"--context\s+([A-Za-z_][A-Za-z0-9_]*)=([^\s]+)"
+)
 
 
 def parse_args():
@@ -53,6 +55,11 @@ def validate_graph(graph: dict):
         if not isinstance(definition, dict):
             raise ValueError(f"State must be an object: {state_name}")
 
+        state_type = definition.get("type")
+        if state_type not in {"instruction", "script", "switch", "spawn", "final"}:
+            raise ValueError(
+                f"State must define a valid type: {state_name}"
+            )
         for event, transition in definition.get("on", {}).items():
             if not isinstance(transition, dict):
                 raise ValueError(
@@ -71,18 +78,41 @@ def normalize(value) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def should_hide(event: str, transition: dict) -> bool:
-    if event in HIDDEN_EVENTS:
-        return True
-    return HIDE_ABORT_TRANSITIONS and transition.get("target") == "abort"
+def escape_mermaid_text(value) -> str:
+    return (
+        normalize(value)
+        .replace("&", "and")
+        .replace("<", "")
+        .replace(">", "")
+    )
+
+
+def extract_context_updates(transition: dict) -> list[str]:
+    instructions = transition.get("instructions", [])
+    if not isinstance(instructions, list):
+        return []
+
+    updates = []
+    for instruction in instructions:
+        if not isinstance(instruction, str):
+            continue
+        updates.extend(
+            f"{key}={value}"
+            for key, value in CONTEXT_UPDATE_PATTERN.findall(instruction)
+        )
+    return updates
+
+
+def should_hide(transition: dict) -> bool:
+    return transition.get("target") == "abort"
 
 
 def transition_lines(state_name: str, definition: dict) -> list[str]:
     lines = []
-    is_switch = "switch" in definition
+    is_switch = definition.get("type") == "switch"
 
     for event, transition in definition.get("on", {}).items():
-        if not isinstance(transition, dict) or should_hide(event, transition):
+        if not isinstance(transition, dict) or should_hide(transition):
             continue
 
         target = transition.get("target")
@@ -93,6 +123,13 @@ def transition_lines(state_name: str, definition: dict) -> list[str]:
         condition = transition.get("condition")
         if condition and not is_switch:
             label += f"<br/>{normalize(condition)}"
+
+        context_updates = extract_context_updates(transition)
+        if context_updates:
+            formatted_updates = ", ".join(
+                escape_mermaid_text(update) for update in context_updates
+            )
+            label += f"<br/>Context: {formatted_updates}"
 
         lines.append(f"    {state_name} --> {target}: {label}")
 
@@ -124,20 +161,27 @@ def graph_to_mermaid(graph: dict) -> str:
 
     lines.append(f"    classDef scriptState {SCRIPT_STATE_STYLE}")
     lines.append(f"    classDef switchState {SWITCH_STATE_STYLE}")
+    lines.append(f"    classDef spawnState {SPAWN_STATE_STYLE}")
 
     script_states = [
         name for name, definition in states.items()
-        if "scripts" in definition
+        if definition.get("type") == "script"
     ]
     switch_states = [
         name for name, definition in states.items()
-        if "switch" in definition
+        if definition.get("type") == "switch"
+    ]
+    spawn_states = [
+        name for name, definition in states.items()
+        if definition.get("type") == "spawn"
     ]
 
     if script_states:
         lines.extend(["", "    class " + ",".join(script_states) + " scriptState"])
     if switch_states:
         lines.append("    class " + ",".join(switch_states) + " switchState")
+    if spawn_states:
+        lines.append("    class " + ",".join(spawn_states) + " spawnState")
 
     return "\n".join(lines).rstrip()
 

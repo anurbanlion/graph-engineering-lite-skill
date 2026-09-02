@@ -7,7 +7,7 @@ stateDiagram-v2
 
     discoveringFlows --> resolvingRequest: DONE<br/>Flow list is successfully retrieved
 
-    resolvingRequest --> readingFlow: READ_FLOW<br/>A single matching flow logical identifier is clearly identified
+    resolvingRequest --> readingFlow: READ_FLOW<br/>A single matching flow logical identifier is clearly identified<br/>Context: flow_name=matched-logical-identifier
     resolvingRequest --> presentingFlows: PRESENT_FLOWS<br/>The user did not provide a flow name
     resolvingRequest --> presentingFlows: NOT_FOUND<br/>The user provided a flow name, but no available flow matches it
 
@@ -17,8 +17,12 @@ stateDiagram-v2
 
     spawningGraph --> complete: COMPLETE<br/>The legacy graph execution finished successfully
 
+    complete --> [*]
+    abort --> [*]
+
     classDef scriptState fill:#DCEBFF,stroke:#2563EB,stroke-width:2px,color:#111827
     classDef switchState fill:#FEE2E2,stroke:#DC2626,stroke-width:2px,color:#111827
+    classDef spawnState fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#111827
 
     class discoveringFlows,readingFlow scriptState
 ```

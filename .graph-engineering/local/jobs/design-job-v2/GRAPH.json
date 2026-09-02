@@ -12,6 +12,7 @@
   "initial": "interviewing",
   "states": {
     "interviewing": {
+      "type": "instruction",
       "instructions": [
         "1. The agent MUST conduct one continuous, multi-turn interview organized into three sections: Purpose, Inputs and Project Outputs, and Process.",
         "2. Before asking questions in any section, the agent MUST inspect the information already provided by the user and derive a concrete preliminary interpretation whenever possible.",
@@ -47,6 +48,7 @@
       }
     },
     "resolvingName": {
+      "type": "instruction",
       "instructions": [
         "The agent MUST propose one or more valid kebab-case identifiers based on the approved interview.",
         "The agent MUST determine with the user whether the job belongs directly under local/jobs or inside parenthesized group directories.",
@@ -71,6 +73,7 @@
       }
     },
     "resolvingJobFolderPath": {
+      "type": "script",
       "scripts": [
         "resolve_local_job_path --project-root {project_root} --job-identifier {context.job_identifier} --job-path {context.job_path}"
       ],
@@ -86,6 +89,7 @@
       }
     },
     "resolvingProcess": {
+      "type": "instruction",
       "instructions": [
         "The agent MUST analyze the approved process and determine whether its complexity benefits from a GRAPH.json state machine or is better represented as ordered steps in JOB.md.",
         "The agent MUST proactively recommend graph format for meaningful states, branches, loops, interactive reviews, retries, or conditional scripts.",
@@ -114,6 +118,7 @@
       }
     },
     "writingJobMarkdown": {
+      "type": "instruction",
       "instructions": [
         "The agent MUST retrieve and follow the canonical job template before writing the Markdown artifact.",
         "The agent MUST compile the approved purpose, inputs, Project Outputs, constraints, and process into .graph-engineering/local/jobs{context.job_path}/JOB.md.",
@@ -137,6 +142,7 @@
       }
     },
     "editingGraph": {
+      "type": "instruction",
       "instructions": [
         "The agent MUST conduct a multi-turn graph-design conversation using the approved job process as its source.",
         "The agent MUST collaborate with the user on states, transitions, conditions, loops, review points, script states, and final states.",
@@ -159,6 +165,7 @@
       }
     },
     "generatingGraphDiagram": {
+      "type": "script",
       "scripts": [
         "graph_to_mermaid .graph-engineering/local/jobs{context.job_path}/GRAPH.json --output-dir .graph-engineering/local/jobs{context.job_path}"
       ],
@@ -178,6 +185,7 @@
       }
     },
     "reviewingGraph": {
+      "type": "instruction",
       "instructions": [
         "The agent MUST inspect the generated GRAPH.md and verify that it represents the current GRAPH.json.",
         "The agent MUST present the generated diagram and summarize the graph structure, branches, loops, and relevant decisions.",
@@ -200,6 +208,7 @@
       }
     },
     "designingScriptPseudocode": {
+      "type": "instruction",
       "instructions": [
         "The agent MUST conduct a multi-turn conversation to design pseudocode for every required script.",
         "The pseudocode MUST define each script's final name, responsibility, inputs, outputs, relevant errors, and interaction with JOB.md or GRAPH.json.",
@@ -217,6 +226,7 @@
       }
     },
     "researchingReusableScripts": {
+      "type": "instruction",
       "instructions": [
         "The agent MUST research existing scripts, libraries, and supporting assets in the available skill directories that may satisfy the approved pseudocode.",
         "The agent MUST classify each candidate as reusable unchanged, reusable with adaptation, useful only as reference, or unsuitable.",
@@ -234,6 +244,7 @@
       }
     },
     "reviewingImplementationPlan": {
+      "type": "instruction",
       "instructions": [
         "The agent MUST present the proposed script implementation plan and the exact reusable assets selected from skill directories.",
         "The agent MUST incorporate requested corrections within this state and MUST present the revised plan after each change.",
@@ -251,6 +262,7 @@
       }
     },
     "implementingScripts": {
+      "type": "instruction",
       "instructions": [
         "The agent MUST copy every approved reusable script, library, and supporting asset into the local job's scripts directory.",
         "The agent MUST adapt copied assets and implement missing scripts according to the confirmed pseudocode and implementation plan.",
@@ -268,10 +280,12 @@
       }
     },
     "complete": {
-      "type": "final"
+      "type": "final",
+      "result": "DONE"
     },
     "abort": {
-      "type": "final"
+      "type": "final",
+      "result": "ERROR"
     }
   }
 }
