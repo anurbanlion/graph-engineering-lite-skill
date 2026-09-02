@@ -1,4 +1,4 @@
-# design-job-v2 v0.3
+# design-job v0.3
 
 ```mermaid
 stateDiagram-v2

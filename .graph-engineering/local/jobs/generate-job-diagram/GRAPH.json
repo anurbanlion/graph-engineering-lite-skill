@@ -1,0 +1,57 @@
+{
+  "id": "generate-job-diagram",
+  "version": "0.1",
+  "context_schema": {
+    "target_job_name": "string"
+  },
+  "context": {
+    "target_job_name": ""
+  },
+  "initial": "checkingGraph",
+  "states": {
+    "checkingGraph": {
+      "type": "instruction",
+      "instructions": [
+        "The agent MUST infer the <target_job_name> from the conversation, the user's prompt, and the job input context.",
+        "The agent MUST execute the script `check_graph` with `--job-identifier <target_job_name> --project-root {project_root}`."
+      ],
+      "on": {
+        "GENERATE_DIAGRAM": {
+          "target": "generatingDiagram",
+          "condition": "check_graph validates target_job_name and resolves a job containing GRAPH.json",
+          "instructions": [
+            "Update runtime context with --context target_job_name=<validated-target-job-name>."
+          ]
+        },
+        "ERROR": {
+          "target": "abort",
+          "condition": "check_graph fails, the job cannot be resolved, or GRAPH.json is missing"
+        }
+      }
+    },
+    "generatingDiagram": {
+      "type": "script",
+      "scripts": [
+        "generate_job_mermaid --job-identifier {context.target_job_name} --project-root {project_root}"
+      ],
+      "on": {
+        "DONE": {
+          "target": "complete",
+          "condition": "GRAPH.md was created or updated from the validated GRAPH.json"
+        },
+        "ERROR": {
+          "target": "abort",
+          "condition": "Mermaid generation fails"
+        }
+      }
+    },
+    "complete": {
+      "type": "final",
+      "result": "DONE"
+    },
+    "abort": {
+      "type": "final",
+      "result": "ERROR"
+    }
+  }
+}

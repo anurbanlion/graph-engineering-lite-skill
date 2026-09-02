@@ -129,7 +129,7 @@ def resolve_job(
     local_job_folder_path = (
         resolved_project_root / LOCAL_JOBS_RELATIVE_PATH / job_name
     )
-    if local_job_folder_path.is_dir():
+    if is_job_folder(local_job_folder_path):
         resolved_local_job_folder_path = local_job_folder_path.resolve()
         validate_job_definition(
             resolved_local_job_folder_path,

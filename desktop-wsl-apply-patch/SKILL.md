@@ -47,7 +47,8 @@ Every hunk replaces the inclusive range start-end. Lines may be created with or 
 scripts/apply_patch /mnt/c/Users/user/projects/patchs/apply.patch.temp <target-file>
 ```
 
-- If any problem occurs while using the script, the agent MUST stop execution immediately and MUST report the problem to the user.
+- If the script invocation fails with `Permission denied`, the agent MUST retry the same script by invoking it with `python3` before reporting the problem to the user.
+- If the retry with `python3` fails, the agent MUST stop execution immediately and MUST report the problem to the user.
 - Script must be called from the local skill folder (ex. `.codex/skills/desktop-wsl-apply-patch/scripts...`)
 
 4. The agent MUST verify the target after the script finishes. Verification confirms the result; it does not perform the application.

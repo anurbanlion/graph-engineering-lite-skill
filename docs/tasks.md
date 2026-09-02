@@ -63,22 +63,22 @@
   - [x] Planificar las tareas de implementación
   - [x] Implementar el nodo `spawn` y otras mejoras en el runtime.
 
-- [ ] Actualizar `execute-job` para usar `context.job_name` desde el inicio de la ejecución.
-  - [ ] Leer `context.job_name` cuando se proporcione al iniciar el runtime.
-  - [ ] Omitir el discovery del job cuando el contexto ya contenga un identificador de job válido.
-  - [ ] Conservar el discovery actual cuando `context.job_name` no esté disponible.
-  - [ ] Actualizar el grafo
+- [x] Actualizar `execute-job` para usar `context.job_name` desde el inicio de la ejecución.
+  - [x] Leer `context.job_name` cuando se proporcione al iniciar el runtime.
+  - [x] Omitir el discovery del job cuando el contexto ya contenga un identificador de job válido.
+  - [x] Conservar el discovery actual cuando `context.job_name` no esté disponible.
+  - [x] Actualizar el grafo
 
-- [ ] Actualizar `execute-job` para usar `spawn` node para invocar a los otros jobs si tienen un GRAPH asociado.
-- [ ] Formalizar las actualizaciones de contexto declaradas por las transiciones.
-  - [ ] Incorporar `context_updates` como metadatos estructurados del contrato de transición.
-  - [ ] Validar las claves declaradas contra `context_schema`.
-  - [ ] Mostrar las actualizaciones de contexto en los diagramas Mermaid sin depender de instrucciones en lenguaje natural.
-  - [ ] Actualizar el runtime y el skill para interpretar las actualizaciones estructuradas.
+- [x] Actualizar `execute-job` para usar `spawn` node para invocar a los otros jobs si tienen un GRAPH asociado.
+- [x] Formalizar las actualizaciones de contexto declaradas por las transiciones.
+  - [x] Incorporar `context_updates` como metadatos estructurados del contrato de transición.
+  - [x] Validar las claves declaradas contra `context_schema`.
+  - [x] Mostrar las actualizaciones de contexto en los diagramas Mermaid sin depender de instrucciones en lenguaje natural.
+  - [x] Actualizar el runtime y el skill para interpretar las actualizaciones estructuradas.
+
+- [x] Migrar todos los cambios a la carpeta de skills
+- [ ] Crear un job con design-job-v2: `generate-job-diagram`
 - [ ] Eliminar `execute-flow` ya que `execute-job` se volverá el orquestador oficial al poder invocar otros jobs.
-
-- [ ] Migrar todos los cambios
-- [ ] Crear un job con design-job-v2
 
 ## Hito 5: Completar `design-job-v2`
 
@@ -103,8 +103,33 @@
   - [ ] Sustituir los artefactos del `design-job` anterior únicamente después de validar la nueva implementación.
   - [ ] Eliminar el nombre temporal `design-job-v2` cuando la sustitución esté completa.
 
-## Hito 6: Crear el job de actualización
+## Hito 5.1: Mejorar el diseño de grafos en `design-job-v2`
 
+- [ ] Incorporar referencias y ejemplos de `GRAPH.json` al flujo de `design-job-v2`.
+  - [ ] Documentar el esquema mínimo de un grafo: `id`, `version`, `context_schema`, `context`, `initial` y `states`.
+  - [ ] Documentar los tipos de estado (`instruction`, `script`, `spawn` y `final`) y sus contratos.
+  - [ ] Añadir un ejemplo anotado de estados, transiciones, condiciones, códigos de salida y actualizaciones de contexto.
+  - [ ] Hacer que el agente consulte esas referencias durante la conversación de diseño antes de proponer el `GRAPH.json`.
+  - [ ] Validar el grafo generado con el esquema y regenerar `GRAPH.md` como parte de la revisión.
+
+## Hito 5.2: Probar la integración y el intercambio de contexto entre jobs
+
+- [ ] Diseñar y validar un grafo mínimo que comparta `context.job_name` entre estados y jobs hijo.
+  - [ ] Definir el contrato para propagar contexto desde un job padre a un job hijo.
+  - [ ] Probar la validación del `job_name` mediante `check_graph` y `resolve_local_job_path`.
+  - [ ] Documentar las limitaciones actuales de integración, especialmente la propagación y actualización de contexto.
+  - [ ] Registrar los resultados de las pruebas y los cambios necesarios en el runtime o en el skill.
+
+## Hito 5.3: Tratar `complete` y `abort` como estados implícitos del runtime
+
+- [ ] Actualizar el contrato de graphs para que `complete` y `abort` no deban declararse en `states`.
+  - [ ] Ajustar la validación de `execute.py` para aceptar transiciones hacia esos estados reservados.
+  - [ ] Ajustar `graph_to_mermaid.py` para renderizar los estados reservados sin exigir definiciones locales.
+  - [ ] Definir el comportamiento de entrada a `complete` y `abort` y sus resultados (`DONE` y `ERROR`).
+  - [ ] Añadir pruebas de ejecución y generación Mermaid para ambos estados implícitos.
+
+
+## Hito 6: Crear update job
 - [ ] Diseñar `update-job` para modificar jobs locales existentes.
   - [ ] Definir su propósito, sus inputs, sus Project Outputs y su Context Output.
   - [ ] Resolver el job objetivo mediante su identificador y su Project Root.
@@ -117,6 +142,8 @@
   - [ ] Crear su `GRAPH.json` cuando el proceso acordado justifique una máquina de estados.
   - [ ] Crear solamente los scripts locales requeridos por el diseño aprobado.
   - [ ] Documentar un ejemplo realista de actualización de un job local.
+
+## Hito 6: Crear commit job?
 
 ## Hito 7: Formalizar el desarrollo y la calidad de scripts
 
@@ -246,6 +273,8 @@
 - [ ] Retirar cada implementación `.mjs` únicamente después de validar su reemplazo Python y todas sus referencias.
 
 - [ ] Agregar en wsl patch la politica de un reintento
+
+- wsl patch deberia tener soporte multi archivo, y ser un job ahora que lo pienso
 
 ## Contexto y dirección del proyecto
 

@@ -3,7 +3,8 @@
 import sys
 
 from lib.errors import fail
-from lib.paths import find_job_md, get_jobs_dir, get_project_root
+from lib.paths import get_project_root
+from lib.resolve_job import JobResolutionError, resolve_job
 from lib.sections import extract_section
 
 
@@ -14,23 +15,15 @@ def main():
     job_name = sys.argv[1]
 
     project_root = get_project_root()
-    jobs_dir = get_jobs_dir(project_root)
 
-    if not jobs_dir.exists():
-        fail(f"Jobs directory not found: {jobs_dir}")
+    try:
+        resolved_job = resolve_job(job_name, project_root)
+    except JobResolutionError as error:
+        fail(str(error))
 
-    # Search for the job directory
-    job_dir = None
-    for path in jobs_dir.rglob(job_name):
-        if path.is_dir() and path.name == job_name:
-            job_dir = path
-            break
-
-    if not job_dir:
-        fail(f"Job not found: {job_name}")
-
-    graph_path = job_dir / "GRAPH.json"
-    job_md_path = job_dir / "JOB.md"
+    job_dir = resolved_job.job_folder_path
+    graph_path = resolved_job.graph_json_path
+    job_md_path = resolved_job.job_md_path
 
     # Sub-machine / Graph detection
     if graph_path.is_file():

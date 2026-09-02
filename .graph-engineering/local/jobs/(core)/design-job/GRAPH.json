@@ -1,5 +1,5 @@
 {
-  "id": "design-job-v2",
+  "id": "design-job",
   "version": "0.3",
   "context_schema": {
     "job_identifier": "string",

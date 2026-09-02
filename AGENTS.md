@@ -63,6 +63,7 @@ The `<skill-local-folder>` variable is the folder on the current project where s
 
 - When controlling a WSL repository through Codex Desktop, agents MUST invoke WSL binaries directly with `wsl.exe -d <distro> -- <binary> <arguments>`.
 - Agents MUST NOT use `bash -lc`, another shell wrapper, or `cd` when the target binary can be invoked directly with an absolute path.
+- Agents MUST NOT use `rg`; agents MUST use another available search tool such as `find` when searching files or text in WSL.
 
 # Extra
 
