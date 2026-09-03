@@ -26,7 +26,7 @@ def main():
     job_md_path = resolved_job.job_md_path
 
     # Sub-machine / Graph detection
-    if graph_path.is_file():
+    if graph_path is not None:
         print(f"===== SUB-MACHINE DETECTED: {job_name} =====")
         try:
             rel_path = graph_path.relative_to(project_root)
