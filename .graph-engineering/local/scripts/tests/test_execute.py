@@ -1,8 +1,29 @@
 import json
+import shlex
 from pathlib import Path
 
 import check_job
 import execute
+
+
+def test_interpolate_command_normalizes_a_windows_project_root_before_splitting():
+    snapshot = execute.Snapshot(
+        execution_id="exec-12345678",
+        machine_name="example-job",
+        execution_mode="default",
+        project_root="C:\\Users\\Example User\\Projects\\example-project",
+        context={},
+        state_name="running",
+        last_transition=None,
+        history=[],
+    )
+
+    command = execute.interpolate_command('scripts/example.py "{project_root}"', snapshot)
+
+    assert shlex.split(command) == [
+        "scripts/example.py",
+        "C:/Users/Example User/Projects/example-project",
+    ]
 
 
 def create_graph_job(job_folder_path: Path) -> None:

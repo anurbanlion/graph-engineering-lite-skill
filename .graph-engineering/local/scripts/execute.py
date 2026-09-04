@@ -610,7 +610,7 @@ def interpolate_command(command: str, snapshot: Snapshot) -> str:
 
     interpolated_command = CONTEXT_REFERENCE_PATTERN.sub(replace_reference, command)
     interpolated_command = interpolated_command.replace(
-        "{project_root}", snapshot.project_root
+        "{project_root}", snapshot.project_root.replace("\\", "/")
     )
     if "{" in interpolated_command or "}" in interpolated_command:
         fail(
