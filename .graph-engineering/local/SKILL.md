@@ -52,8 +52,7 @@ The agent MUST use RFC-style normative language when creating a new job, graphs 
 
 ## Executing jobs
 
-1. The agent MUST start the job execution runtime when the user explicitly requests execution of a named job. For every explicit request to run a specific job, the agent MUST initialize the execution runtime as follows:
-
+1. The agent MUST start the job execution runtime when the user explicitly requests execution of a named job. For every explicit request to run a specific job, the agent MUST immediately initialize the execution runtime as follows:
 
 ```bash
 python3 .codex/skills/graph-engineering/scripts/execute.py --job execute-job --project-root <absolute-project-root>
