@@ -15,11 +15,11 @@ Evaluate completed work and its reports against the assigned task, applicable Ru
 1. Read the assigned task, relevant Rules, Jobs, reports, and linked artifacts.
 2. Compare the completed work with the task and applicable requirements.
 3. Identify verified outcomes, gaps, risks, and required corrections.
-4. Save the evaluation as a Markdown review artifact.
+4. Each Reviewer MUST maintain one living review for each logical assigned task. If the Reviewer re-reviews corrections for the same task, it MUST update that review in place rather than create another review.
 
 ## Output
 
-A Markdown review using this template:
+One living Markdown review for the logical assigned task, using this template:
 
 ```md
 # Review - <task>

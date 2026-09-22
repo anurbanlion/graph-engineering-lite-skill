@@ -14,11 +14,12 @@ Produce a concise report of an assigned task or Job execution for the Orchestrat
 1. List each completed task and its outcome.
 2. List each created, modified, or relevant artifact with a link.
 3. Record every search, console command, and internal tool call used, with its purpose and outcome.
-4. Record verification results, unresolved issues, and required follow-up, then save the report as a Markdown artifact.
+4. Record verification results, unresolved issues, and required follow-up.
+5. Each Worker MUST maintain one living report for each logical assigned task. If that Worker performs correction or remediation rounds for the same task, it MUST update that report in place rather than create another report.
 
 ## Output
 
-A Markdown report using this template:
+One living Markdown report for the logical assigned task, using this template:
 
 ```md
 # Report - <task>
