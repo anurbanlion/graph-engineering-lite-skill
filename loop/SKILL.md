@@ -1,109 +1,47 @@
 ---
 name: loop
-description: Orchestrate delegated workspace work through planning, execution, review, reporting, and system improvement.
+description: Use only when the user explicitly requests Loop or the Loop skill to create orchestration diagrams or execute dependency-driven multi-agent workspace flows.
 ---
 
 # Loop
 
-Complete the user's work effectively while gradually improving how the system works.
+Use this skill to create orchestration diagrams and execute an isolated orchestration flow. Read the [workspace layout](README.md) before relying on repository configuration.
 
-## Flow
+## Orchestration Diagram Creation
 
-```mermaid
-flowchart TD
-    U[User Task<br/>or<br/>Automated Trigger] --> O[Orchestrator Agent]
+1. Understand the requested outcome, target areas, relevant `artifacts/` documents, and assigned Jobs.
+2. Read [Dependency Workflow Algorithm](references/dependency-workflow-algorithm.md) and [Dependency Diagram Example](references/dependency-diagram-example.md), then create or revise the flow's `dependency-diagram.md`. The dependency diagram defines worker tasks, ownership, direct prerequisites, and the deliverables that unlock dependent work.
+3. Do not create the Gantt diagram until the dependency diagram is valid. The dependency diagram is a reusable template; it MUST NOT contain target-area instances, dates, time units, task status, or worker-slot assignments.
+4. Read [Gantt Scheduling Algorithm](references/gantt-scheduling-algorithm.md), then create or revise the flow's `gantt-diagram.md`. The Gantt diagram distributes eligible task instances across discrete time units.
+5. The Gantt diagram MUST NOT introduce a worker, task ownership, prerequisite, or deliverable relationship that is absent from the dependency diagram.
 
-    O --> W1[Workspace Agent 1<br/>Tasks + Jobs + Report Job]
-    O --> W2[Workspace Agent 2<br/>Tasks + Jobs + Report Job]
-    O --> W3[Workspace Agent 3<br/>Tasks + Jobs + Report Job]
+## Execution Policy
 
-    W1 --> R[Reviewer Sub-Agent<br/>Review Job]
-    W2 --> R
-    W3 --> R
+Before scheduling or invoking workers, the orchestrator MUST read:
 
-    R --> F[Reformer Sub-Agent<br/>Self-Improve Job]
-```
+- `.loop/artifacts/RULES.md` and taks-relevant nested artifact documents;
+- the selected flow's `dependency-diagram.md` and `gantt-diagram.md`; and
+- the relevant Jobs from `.loop/jobs/`.
 
-## Concepts
+The dependency diagram defines task ownership and the outputs that unlock dependent work. The Gantt diagram defines execution order, priority, and the two scheduled tasks in each discrete time unit. Each worker in the dependency diagram is a distinct responsibility.
 
-**Orchestrator** — The main agent. It understands the request, reads applicable Rules and Jobs, creates the execution plan, delegates work, and coordinates the post-work improvement loop.
+### Discrete Time Units
 
-**Rule** — Reusable guidance that constrains or informs how work is performed. Rules may include constraints, conventions, patterns, snippets, or other reusable knowledge. Rules may be global or domain-specific.
+- Work runs in discrete time units: `T1`, `T2`, `T3`, and so on.
+- Each unit invokes exactly the two tasks specified by its Gantt schedule.
+- Both tasks in `Tn` MUST complete before `Tn + 1` may start.
+- A worker that finishes early waits; it MUST NOT begin a future Gantt task early.
+- By default, the orchestrator executes one time unit and then stops.
+- The user MAY authorize multiple consecutive time units. The orchestrator MUST stop at the authorized limit.
 
-**Job** — A reusable unit of work defined by an input, a process, and an output.
+### Worker Invocation and Memory
 
-**Workspace Agent** — A subagent responsible for delegated work. It executes an ad-hoc task, one or more assigned Jobs, or both.
+- The orchestrator MUST verify a task's dependencies before invoking its worker and provide only the assigned task, required inputs, relevant artifacts, and assigned Jobs.
+- A worker is identified by `worker-<number>-<kebab-responsibility>`, never by a target area or a Gantt time unit.
+- Before invoking a worker, the orchestrator MUST inspect the matching flow-local directory under `workers/`. If `MEMORY.md` exists, the worker MUST read and apply it.
+- Read [Worker Memory Template](references/worker-memory-template.md) when creating or updating `MEMORY.md`. Memory records durable responsibility, corrections, rules, pointers, reusable patterns, and useful sources; it MUST NOT be an execution log.
+- Read [Worker Prompt Template](references/worker-prompt-template.md) before sending a worker its initial task prompt.
+- A flow MUST reuse the same persistent worker responsibility for later tasks that it owns. The `T<n>` label is only a scheduling and authorization boundary.
+- Workers return a concise completion message when their assigned task is complete.
 
-**Reviewer** — A subagent responsible for evaluating completed work by executing the `review` Job.
-
-**Reformer** — A subagent responsible for improving the system by executing the `self-improve` Job.
-
-## Folder Structure
-
-All paths are relative to the project root:
-
-```text
-.loop/
-├── rules/
-│   ├── RULES.md
-│   └── <domain>/
-│       └── RULES.md
-└── jobs/
-    └── <job>/
-        └── JOB.md
-```
-
-## Instructions
-
-The agent that read this skill is the Orchestrator. It is responsible for understanding the request, loading the relevant system knowledge, planning the work, delegating execution, and coordinating the post-work improvement loop.
-
-### Pre-Work & Execution Plan
-
-1. You MUST understand the user's requested outcome before planning execution.
-
-2. You MUST read the relevant system artifacts from the project root:
-
-   * Main rules file `.loop/rules/RULES.md` MUST always be read unless it has already been read and remains applicable to the current context.
-   * Relevant `.loop/rules/<domain>/RULES.md` files MUST be identified and read only if they have not already been read and appear useful for the current request.
-   * Relevant Jobs from `.loop/jobs/` MUST be identified and read only if they have not already been read and appear useful for completing the request.
-
-3. You MUST create and present a concise execution plan using the applicable Rules and relevant Jobs. Independent work SHOULD be modeled in parallel when possible.
-
-4. You MUST wait for the user's approval before executing the plan.
-
-### Work
-
-1. After approval, you SHOULD delegate executable work to Workspace Agents and a prompt following the Subagent Prompt Template.
-   - **Task**: A Workspace Agent MAY receive an ad-hoc task, one or more explicitly assigned Jobs, or both. The prompt MUST instruct the Workspace Agent to execute the `report` Job after completing its assigned task and Jobs, and return the report link to the Orchestrator.
-
-### Post-Work
-
-1. After the Workspace Agents complete their work and reports, you MUST delegate evaluation using the `review` Job and a prompt following the Subagent Prompt Template.
-
-2. After the review completes, you MUST delegate system improvement using the `self-improve` Job and a prompt following the Subagent Prompt Template.
-
-## Subagent Prompt Template
-
-1. The Orchestrator MUST provide every subagent with a prompt using this template:
-
-   **Task**
-   > State the objective as an action and the expected outcome.
-
-   **Context**
-   > Provide the relevant information, artifacts, documentation, decisions, limits, scope, and considerations required for the work. Do not repeat Rules already available in `RULES.md` files.
-
-   **Inputs**
-   > Provide the actions, values, files, paths, and prior outputs required by the assigned Jobs.
-
-   **Rules Inspection**
-   * You MUST read the following Rules:
-     - `.loop/rules/RULES.md`
-     - [Link to domain-specific Rule 1]
-     - [Link to domain-specific Rule 2]
-   * You MAY inspect additional domain Rules if you determine they are relevant to your assigned work.
-
-   **Jobs Inspection**
-   * You MUST read and execute the following Jobs:
-     - [Link to Job 1]
-     - [Link to Job 2]
-   * You MUST NOT execute or inspect other Jobs unless the Orchestrator explicitly assigns them.
+No reviewer or reformer is created or invoked during an execution phase. Review and audit work MAY instead be modeled as separate orchestration flows.
