@@ -21,8 +21,9 @@ loop/                                                  # Installable orchestrati
 │       └── JOB.md                                     # Atomic work step with input, process, and output
 └── orchestration/                                     # Isolated orchestration flows
     └── <flow-name>/                                   # One implementation, review, audit, or other flow
-        ├── dependency-diagram.md                      # Worker ownership, outputs, and prerequisites
-        ├── gantt-diagram.md                           # Ordered execution plan for this flow
+        ├── dependency-diagram.md                      # Shared worker ownership, outputs, and prerequisites
+        ├── gantt-diagram.md                           # Optional full-flow execution plan
+        ├── gantt-diagram.<scope>.md                   # Optional scoped execution plan sharing this flow's dependencies
         └── workers/                                   # Workers scoped to this orchestration flow
             └── worker-<number>-<responsibility>/
                 └── MEMORY.md                          # Durable learnings for similar future worker instances

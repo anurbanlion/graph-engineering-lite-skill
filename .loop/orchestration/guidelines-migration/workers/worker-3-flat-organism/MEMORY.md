@@ -15,7 +15,7 @@ W3 must not modify the props contract, fixtures, Storybook, analytics, global pu
 ## Authoritative references
 
 - Worker ownership and prerequisites: `.loop/orchestration/guidelines-migration/dependency-diagram.md`
-- Repository rules: `.loop/rules/RULES.md`
+- Repository rules: `.loop/artifacts/RULES.md`
 - Component conventions: `openspec/specs/components-conventions/design.md`
 - Organism source: `src/shared/components/organisms/<organism>/`
 - Shared reuse indexes:

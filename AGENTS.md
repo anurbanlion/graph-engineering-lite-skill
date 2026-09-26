@@ -49,14 +49,6 @@ Proposed instruction update to align future behavior:
   "<new clarified rule text>"
 ```
 
-## Codex Desktop WSL workflow
-
-When running Codex Desktop in Windows and controlling this repository through WSL:
-
-- Agents MUST always read the `desktop-wsl-apply-patch` skill with `wsl.exe -d distro -- cat <skill-local-folder>/desktop-wsl-apply-patch/SKILL.md` at the start of any conversation.
-
-The `<skill-local-folder>` variable is the folder on the current project where skills are located and its location depends on the agent (ex. `.codex/skills`)
-
 ## Command rules
 
 - Agents MUST NOT run `git push`.

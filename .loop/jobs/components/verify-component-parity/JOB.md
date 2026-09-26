@@ -18,7 +18,7 @@ If evidence or a required earlier step is missing, the Worker MUST not report a 
 - New shared organism evidence in the same entry journey;
 - Relevant earlier Worker reports and the final diff;
 - Approved differences; and
-- `.loop/rules/analytics/RULES.md` and the relevant files in `analytics/docs/` when analytics are in scope.
+- `.loop/artifacts/analytics/RULES.md` and the relevant files in `analytics/docs/` when analytics are in scope.
 
 ## Scope
 

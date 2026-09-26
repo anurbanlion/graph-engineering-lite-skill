@@ -7,7 +7,7 @@ Worker 1 owns the organism contract phase. For each assigned organism, review th
 ## Authoritative References
 
 - `.loop/orchestration/guidelines-migration/dependency-diagram.md`: W1A is legacy-component review; W1B is `.props.ts`, props, and `propsEngine` creation.
-- `.loop/rules/RULES.md`: required organism layout, shared-only dependencies, and the mandatory whitespace validation.
+- `.loop/artifacts/RULES.md`: required organism layout, shared-only dependencies, and the mandatory whitespace validation.
 - The assigned legacy page and component: authoritative sources for section slug, prop semantics, ordering, and mapping behavior.
 - `src/core/types/contentful.d.ts`: authoritative source for V2 Contentful field shapes and nullability.
 

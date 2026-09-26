@@ -9,9 +9,9 @@ routes supply tracker configuration only. Legacy pages are reference-only.
 
 ## Authoritative references
 
-- `.loop/rules/RULES.md`
+- `.loop/artifacts/RULES.md`
 - `.loop/orchestration/guidelines-migration/dependency-diagram.md`
-- `.loop/orchestration/guidelines-migration/execution-policy.md`
+- `loop/SKILL.md`
 - `analytics/docs/`
 - `analytics/schemas/index.ts` and `analytics/globalRegistry.ts`
 

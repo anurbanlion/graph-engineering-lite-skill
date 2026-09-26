@@ -16,7 +16,7 @@ If a precondition is not met, the Worker MUST not change code. It MUST record th
 
 - The old component and its direct production callers;
 - The shared organism and its public API;
-- `.loop/rules/analytics/RULES.md` and the relevant files in `analytics/docs/`;
+- `.loop/artifacts/analytics/RULES.md` and the relevant files in `analytics/docs/`;
 - Existing schemas, registries, and tracker registrations; and
 - Any approved differences from the old analytics behavior.
 

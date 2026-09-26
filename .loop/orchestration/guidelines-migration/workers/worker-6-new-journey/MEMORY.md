@@ -45,7 +45,7 @@ Use these questions to resolve ownership quickly:
 PowerShell commands for focused inspection and validation:
 
 ```powershell
-Get-Content -Raw '.loop/rules/RULES.md'
+Get-Content -Raw '.loop/artifacts/RULES.md'
 Get-Content -Raw '.loop/orchestration/guidelines-migration/dependency-diagram.md'
 Get-ChildItem -Path '.loop/orchestration/guidelines-migration' -Filter 'README*.md' -File
 git -c core.autocrlf=false -c core.whitespace=cr-at-eol diff --check

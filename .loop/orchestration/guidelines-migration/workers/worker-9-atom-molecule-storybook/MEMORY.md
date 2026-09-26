@@ -7,7 +7,7 @@ Provide Storybook coverage only for atoms and molecules newly created or materia
 ## Authoritative references
 
 - `.loop/orchestration/guidelines-migration/dependency-diagram.md` is the authoritative W9 job definition: prepare story-local fixture data, create atom stories, then create molecule stories, after W8 publishes the relevant artifacts.
-- `.loop/rules/RULES.md` defines the shared-component layout and required diff validation command.
+- `.loop/artifacts/RULES.md` defines the shared-component layout and required diff validation command.
 
 ## Useful queries
 - To locate candidate coverage, use:

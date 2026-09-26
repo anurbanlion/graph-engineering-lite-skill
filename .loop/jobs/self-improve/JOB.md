@@ -56,7 +56,7 @@ A living Markdown improvement proposal containing only this Reformer subagent's 
 ### Add Rule
 
 - Domain: `global` or `<domain>`
-- Path: `.loop/rules/<domain>/RULES.md`
+- Path: `.loop/artifacts/<domain>/RULES.md`
 - Proposed instruction: <rule text>
 - Reason: <evidence-supported rationale>
 

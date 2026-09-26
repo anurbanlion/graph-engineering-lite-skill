@@ -13,7 +13,7 @@ configuration.
 
 ## Authoritative references
 
-- `.loop/rules/RULES.md` — organism structure, import boundaries, and the
+- `.loop/artifacts/RULES.md` — organism structure, import boundaries, and the
   required line-ending-safe validation command.
 - `.loop/orchestration/guidelines-migration/dependency-diagram.md` — worker
   ownership and prerequisites.

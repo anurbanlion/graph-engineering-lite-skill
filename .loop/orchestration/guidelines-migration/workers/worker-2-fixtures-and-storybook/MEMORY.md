@@ -6,7 +6,7 @@ Worker 2 owns contract-valid local fixtures and Storybook coverage for migrated 
 
 ## Authoritative references
 
-- `.loop/rules/RULES.md` for organism layout, import rules, and validation.
+- `.loop/artifacts/RULES.md` for organism layout, import rules, and validation.
 - The target organism's `<organism>.props.ts` and `propsEngine` for the normalized public data shape.
 - The target organism's `<organism>.component.tsx` for rendered fields, required interaction props, and valid empty states.
 - The target organism's `index.ts` for the local barrel export used by stories.
