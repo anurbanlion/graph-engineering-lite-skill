@@ -1,0 +1,108 @@
+flowchart TB
+    subgraph W1[Worker 1 — Feature Rule Designer]
+        direction TB
+        W1A["Locate or create the target feature rule"]
+        W1B["Write or refine scenarios and acceptance examples"]
+        W1A --> W1B
+    end
+
+    subgraph W2[Worker 2 — Capability Researcher]
+        direction TB
+        W2A["Read the capability map for the rule"]
+        W2B["Research capability ownership, evidence, and gaps"]
+        W2A --> W2B
+    end
+
+    subgraph W3[Worker 3 — Delivery Boundary Designer]
+        direction TB
+        W3A["Classify each operation: generic server, named browser, or UI-only"]
+        W3B["Define provider DTOs, existing UI models, execution owners, props, and routes"]
+        W3A --> W3B
+    end
+
+    subgraph W4[Worker 4 — Backend Enabler]
+        direction TB
+        W4A["Verify or implement backend behavior only when the chosen capability needs it"]
+        W4B["Publish backend semantics and access constraints"]
+        W4A --> W4B
+    end
+
+    subgraph W5[Worker 5 — Generic Production Service Implementer]
+        direction TB
+        W5A["Implement the generic journey production service"]
+        W5B["Map provider DTOs to the existing delivery model"]
+        W5A --> W5B
+    end
+
+    subgraph W6[Worker 6 — Mock Service Implementer]
+        direction TB
+        W6A["Implement deterministic mock behavior for the selected operation"]
+        W6B["Publish matching data limits and failure semantics"]
+        W6A --> W6B
+    end
+
+    subgraph W7[Worker 7 — Generic Journey Application Boundary]
+        direction TB
+        W7A["Wire generic service repositories and repository factory"]
+        W7B["Expose the generic use case through the journey barrel"]
+        W7A --> W7B
+    end
+
+    subgraph W8[Worker 8 — Named Browser Service Implementer]
+        direction TB
+        W8A["Implement the browser-safe named service directly"]
+        W8B["Map its provider DTOs to the existing delivery model"]
+        W8A --> W8B
+    end
+
+    subgraph W9[Worker 9 — Named Browser Use Case Composer]
+        direction TB
+        W9A["Wire the named factory inside infrastructure/repository"]
+        W9B["Expose the named use case by direct file import only"]
+        W9A --> W9B
+    end
+
+    subgraph W10[Worker 10 — Marketplace UI Source Composer]
+        direction TB
+        W10A["Keep suggestion sources separate in the UI contract"]
+        W10B["Implement rows, modes, states, callbacks, and route consumption"]
+        W10A --> W10B
+    end
+
+    subgraph W11[Worker 11 — Demo Route Initial-Data Composer]
+        direction TB
+        W11A["Call generic server use cases from page or layout"]
+        W11B["Pass typed initial data through Demo props without presentation decisions"]
+        W11A --> W11B
+    end
+
+    subgraph W12[Worker 12 — Client Interaction Wire-up]
+        direction TB
+        W12A["Wire hooks and direct named use cases for client interaction"]
+        W12B["Pass separate data sources to the Marketplace UI"]
+        W12A --> W12B
+    end
+
+    subgraph W13[Worker 13 — Rule Verification]
+        direction TB
+        W13A["Verify acceptance examples across data, UI, and Demo boundaries"]
+        W13B["Report coverage, drift, and remaining gaps"]
+        W13A --> W13B
+    end
+
+    W1 -->|"validated feature rule"| W2
+    W2 -->|"capability assessment"| W3
+    W3 -->|"backend requirement when needed"| W4
+    W4 -->|"backend semantics"| W5
+    W3 -->|"mock contract"| W6
+    W5 -->|"generic production service"| W7
+    W6 -->|"generic mock service"| W7
+    W3 -->|"named browser-service contract when needed"| W8
+    W8 -->|"named production service"| W9
+    W6 -->|"named mock service when needed"| W9
+    W3 -->|"UI source and presentation contract"| W10
+    W7 -->|"generic journey use case"| W11
+    W9 -->|"direct named use case when needed"| W12
+    W10 -->|"Marketplace UI contract"| W12
+    W11 -->|"initial Demo props"| W12
+    W12 -->|"interactive Demo integration"| W13

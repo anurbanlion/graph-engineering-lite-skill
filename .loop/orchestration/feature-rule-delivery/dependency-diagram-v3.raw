@@ -1,0 +1,48 @@
+flowchart TB
+    subgraph W1[Worker 1 — Feature Rule Designer]
+        direction TB
+        W1A["Locate or create the target feature rule"]
+        W1B["Write or refine observable scenarios"]
+        W1A --> W1B
+    end
+
+    subgraph W2[Worker 2 — Capability-Informed Service Implementer]
+        direction TB
+        W2T1A["Research capabilities and inspect reusable domain models"]
+        W2T1B["Define provider DTOs and publish the service return model in the domain"]
+        W2T2A["Implement the selected generic or named service operation"]
+        W2T2B["Map provider DTOs to the published return model"]
+        W2T1A --> W2T1B
+        W2T1B --> W2T2A
+        W2T2A --> W2T2B
+    end
+
+    subgraph W4[Worker 4 — UI Contract and Module Behavior Implementer]
+        direction TB
+        W4A["Define or refactor target screen and descendant component props"]
+        W4B["Implement UI behavior, routes, callbacks, and presentation states"]
+        W4A --> W4B
+    end
+
+    subgraph W5[Worker 5 — Mock Behavior Implementer]
+        direction TB
+        W5A["Implement mutable mock state in store.mock when needed"]
+        W5B["Implement contract-compatible mock behavior and thin mock service delegation"]
+        W5A --> W5B
+    end
+
+    subgraph W6[Worker 6 — Demo Router Composer]
+        direction TB
+        W6A["Expose operations through the required use case, action, factory, or direct named import"]
+        W6B["Compose page, layout, shell, route state, hooks, navigation, and client state"]
+        W6C["Wire the service result into the UI contract and run final typecheck"]
+        W6A --> W6B
+        W6B --> W6C
+    end
+
+    W1 -->|"validated feature rule"| W2T1A
+    W2T1B -->|"published service contract"| W4A
+    W2T1B -->|"published service contract"| W5A
+    W2T2B -->|"implemented production operation"| W6A
+    W4B -->|"UI contract and module behavior"| W6B
+    W5B -->|"mock behavior"| W6A
